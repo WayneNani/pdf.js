@@ -18,42 +18,57 @@
 import { TEST_PASSED, TEST_UNEXPECTED_FAIL } from "../color_utils.mjs";
 import Jasmine from "jasmine";
 
+const DEFAULT_INTEGRATION_SPECS = [
+  "accessibility_spec.mjs",
+  "annotation_spec.mjs",
+  "autolinker_spec.mjs",
+  "caret_browsing_spec.mjs",
+  "comment_spec.mjs",
+  "copy_paste_spec.mjs",
+  "cursor_tools_spec.mjs",
+  "digital_signature_spec.mjs",
+  "document_properties_spec.mjs",
+  "find_spec.mjs",
+  "freetext_editor_spec.mjs",
+  "highlight_editor_spec.mjs",
+  "ink_editor_spec.mjs",
+  "presentation_mode_spec.mjs",
+  "reorganize_pages_spec.mjs",
+  "scripting_spec.mjs",
+  "signature_editor_spec.mjs",
+  "simple_viewer_spec.mjs",
+  "stamp_editor_spec.mjs",
+  "text_extractor_spec.mjs",
+  "text_field_spec.mjs",
+  "text_layer_spec.mjs",
+  "text_layer_images_spec.mjs",
+  "thumbnail_view_spec.mjs",
+  "viewer_spec.mjs",
+];
+
 async function runTests(results) {
   const jasmine = new Jasmine();
   jasmine.exitOnCompletion = false;
   jasmine.jasmine.DEFAULT_TIMEOUT_INTERVAL = 30000;
 
+  const specFiles = process.env.PDFJS_INTEGRATION_SPECS
+    ? process.env.PDFJS_INTEGRATION_SPECS.split(",")
+    : DEFAULT_INTEGRATION_SPECS;
+
   jasmine.loadConfig({
     random: true,
     spec_dir: "integration",
-    spec_files: [
-      "accessibility_spec.mjs",
-      "annotation_spec.mjs",
-      "autolinker_spec.mjs",
-      "caret_browsing_spec.mjs",
-      "comment_spec.mjs",
-      "copy_paste_spec.mjs",
-      "cursor_tools_spec.mjs",
-      "digital_signature_spec.mjs",
-      "document_properties_spec.mjs",
-      "find_spec.mjs",
-      "freetext_editor_spec.mjs",
-      "highlight_editor_spec.mjs",
-      "ink_editor_spec.mjs",
-      "presentation_mode_spec.mjs",
-      "reorganize_pages_spec.mjs",
-      "scripting_spec.mjs",
-      "signature_editor_spec.mjs",
-      "simple_viewer_spec.mjs",
-      "stamp_editor_spec.mjs",
-      "text_extractor_spec.mjs",
-      "text_field_spec.mjs",
-      "text_layer_spec.mjs",
-      "text_layer_images_spec.mjs",
-      "thumbnail_view_spec.mjs",
-      "viewer_spec.mjs",
-    ],
+    spec_files: specFiles,
   });
+
+  const integrationFilter = process.env.PDFJS_INTEGRATION_FILTER;
+  if (integrationFilter) {
+    jasmine.env.configure({
+      specFilter: spec =>
+        spec.fullName.includes(integrationFilter) ||
+        spec.description.includes(integrationFilter),
+    });
+  }
 
   function failureError(result) {
     return result.failedExpectations

@@ -19,6 +19,7 @@ import {
   AnnotationEditorParamsType,
   FeatureTest,
   getRGBA,
+  MathClamp,
   Util,
 } from "pdfjs-lib";
 import { internalOpt } from "./internal_evt.js";
@@ -26,6 +27,7 @@ import { internalOpt } from "./internal_evt.js";
 /**
  * @typedef {Object} AnnotationEditorParamsOptions
  * @property {HTMLInputElement} editorFreeTextFontSize
+ * @property {HTMLInputElement} editorFreeTextFontSizeNumber
  * @property {HTMLInputElement} editorFreeTextColor
  * @property {HTMLInputElement} editorInkColor
  * @property {HTMLInputElement} editorInkThickness
@@ -52,6 +54,7 @@ class AnnotationEditorParams {
    */
   #bindListeners({
     editorFreeTextFontSize,
+    editorFreeTextFontSizeNumber,
     editorFreeTextColor,
     editorInkColor,
     editorInkThickness,
@@ -71,8 +74,30 @@ class AnnotationEditorParams {
         value,
       });
     };
+    const fontSizeMin = editorFreeTextFontSize.min;
+    const fontSizeMax = editorFreeTextFontSize.max;
+    const clampFontSize = value =>
+      MathClamp(Math.round(value) || 0, fontSizeMin, fontSizeMax);
+
+    const setFontSizeUI = value => {
+      editorFreeTextFontSize.value = value;
+      editorFreeTextFontSizeNumber.value = value;
+    };
+
     editorFreeTextFontSize.addEventListener("input", function () {
+      editorFreeTextFontSizeNumber.value = this.valueAsNumber;
       dispatchEvent("FREETEXT_SIZE", this.valueAsNumber);
+    });
+    editorFreeTextFontSizeNumber.addEventListener("input", function () {
+      if (this.value === "") {
+        return;
+      }
+      editorFreeTextFontSize.value = clampFontSize(this.valueAsNumber);
+    });
+    editorFreeTextFontSizeNumber.addEventListener("change", function () {
+      const value = clampFontSize(this.valueAsNumber);
+      setFontSizeUI(value);
+      dispatchEvent("FREETEXT_SIZE", value);
     });
     editorFreeTextColor.addEventListener("input", function () {
       dispatchEvent("FREETEXT_COLOR", this.value);
@@ -167,7 +192,7 @@ class AnnotationEditorParams {
         for (const [type, value] of evt.details) {
           switch (type) {
             case AnnotationEditorParamsType.FREETEXT_SIZE:
-              editorFreeTextFontSize.value = value;
+              setFontSizeUI(value);
               break;
             case AnnotationEditorParamsType.FREETEXT_COLOR:
               editorFreeTextColor.value = value;

@@ -361,6 +361,8 @@ pdfjs-editor-remove-signature-button =
 # Editor Parameters
 pdfjs-editor-free-text-color-input = Color
 pdfjs-editor-free-text-size-input = Size
+pdfjs-editor-free-text-size-number-input =
+    .title = Font size in points
 pdfjs-editor-ink-color-input = Color
 pdfjs-editor-ink-thickness-input = Thickness
 pdfjs-editor-ink-opacity-input = Opacity

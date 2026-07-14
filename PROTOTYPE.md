@@ -49,6 +49,8 @@ In der Toolbar stehen folgende Werkzeuge zur Verfügung:
 
 Parameter wie Farbe, Schriftgröße oder Strichstärke lassen sich über die Dropdown-Panels neben den Werkzeugen anpassen.
 
+Beim Werkzeug **Free Text** stehen für die Schriftgröße ein **Slider** und ein **numerisches Eingabefeld** zur Verfügung (1–100 pt). Beide Controls sind synchron: Änderungen am Slider werden im Zahlenfeld angezeigt und umgekehrt. Für sehr kleine Schriftgrößen kann direkt ein Wert ab **1 pt** eingegeben werden.
+
 ### Formularfelder
 
 AcroForm-Felder (Textfelder, Checkboxen, Dropdowns) können direkt im Dokument angeklickt und ausgefüllt werden.

@@ -966,6 +966,32 @@ dialog :link {
           background-color: white;
         }
       }
+
+      .editorParamsFontSizeControl {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex: 0 1 0;
+      }
+
+      .editorParamsFontSizeNumber {
+        -moz-appearance: textfield;
+        width: 32px;
+        flex: none;
+        padding: 3px 4px;
+        border: 1px solid black;
+        border-radius: 2px;
+        background-color: transparent;
+        color: inherit;
+        font: message-box;
+        text-align: end;
+
+        /*#if !MOZCENTRAL*/
+        &::-webkit-inner-spin-button {
+          margin: 0;
+        }
+        /*#endif*/
+      }
     }
   }
 }

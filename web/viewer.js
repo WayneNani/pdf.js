@@ -332,6 +332,9 @@ function getViewerConfiguration() {
         "editorCommentsSidebarResizer"
       ),
       editorFreeTextFontSize: document.getElementById("editorFreeTextFontSize"),
+      editorFreeTextFontSizeNumber: document.getElementById(
+        "editorFreeTextFontSizeNumber"
+      ),
       editorFreeTextColor: document.getElementById("editorFreeTextColor"),
       editorInkColor: document.getElementById("editorInkColor"),
       editorInkThickness: document.getElementById("editorInkThickness"),

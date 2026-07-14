@@ -2036,6 +2036,91 @@ describe("FreeText Editor", () => {
       );
     });
 
+    it("must support font size number input with minimum 1 and sync with slider", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToFreeText(page);
+
+          const rect = await getRect(page, ".annotationEditorLayer");
+          await createFreeTextEditor({
+            page,
+            x: rect.x + 200,
+            y: rect.y + 200,
+            data: "Hello PDF.js World !!",
+          });
+
+          await selectAll(page);
+
+          const sliderMin = await page.$eval(
+            "#editorFreeTextFontSize",
+            el => el.min
+          );
+          expect(sliderMin).withContext(`In ${browserName}`).toEqual("1");
+
+          await page.$eval("#editorFreeTextFontSizeNumber", el => {
+            el.value = "1";
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+
+          await page.waitForFunction(
+            () =>
+              document.getElementById("editorFreeTextFontSize").value === "1" &&
+              document.getElementById("editorFreeTextFontSizeNumber").value ===
+                "1"
+          );
+
+          const fontSize = await page.evaluate(() => {
+            const editorDiv = document.querySelector(
+              ".selectedEditor .internal"
+            );
+            const match = editorDiv?.style.fontSize.match(/calc\((\d+)px/);
+            return match ? parseInt(match[1], 10) : null;
+          });
+          expect(fontSize).withContext(`In ${browserName}`).toEqual(1);
+
+          await page.evaluate(() => {
+            window.PDFViewerApplication.eventBus.dispatch(
+              "switchannotationeditorparams",
+              {
+                source: null,
+                type: window.pdfjsLib.AnnotationEditorParamsType.FREETEXT_SIZE,
+                value: 7,
+              }
+            );
+          });
+
+          await page.waitForFunction(
+            () =>
+              document.getElementById("editorFreeTextFontSize").value === "7" &&
+              document.getElementById("editorFreeTextFontSizeNumber").value ===
+                "7"
+          );
+
+          await page.$eval("#editorFreeTextFontSizeNumber", el => {
+            el.value = "0";
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+
+          await page.waitForFunction(
+            () =>
+              document.getElementById("editorFreeTextFontSize").value === "1" &&
+              document.getElementById("editorFreeTextFontSizeNumber").value ===
+                "1"
+          );
+
+          const serializedFontSize = await page.evaluate(() => {
+            const { map } =
+              window.PDFViewerApplication.pdfDocument.annotationStorage
+                .serializable;
+            return map ? Array.from(map.values(), x => x.fontSize)[0] : null;
+          });
+          expect(serializedFontSize)
+            .withContext(`In ${browserName}`)
+            .toEqual(1);
+        })
+      );
+    });
+
     it("must check arrow doesn't move an editor when a slider is focused", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
