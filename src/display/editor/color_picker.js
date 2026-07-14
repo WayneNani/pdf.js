@@ -32,6 +32,8 @@ class ColorPicker {
 
   #buttonSwatch = null;
 
+  #customColorInput = null;
+
   #defaultColor;
 
   #dropdown = null;
@@ -85,6 +87,11 @@ class ColorPicker {
       pink: "pdfjs-editor-colorpicker-pink",
       red: "pdfjs-editor-colorpicker-red",
       yellow: "pdfjs-editor-colorpicker-yellow",
+      orange: "pdfjs-editor-colorpicker-orange",
+      purple: "pdfjs-editor-colorpicker-purple",
+      cyan: "pdfjs-editor-colorpicker-cyan",
+      gray: "pdfjs-editor-colorpicker-gray",
+      brown: "pdfjs-editor-colorpicker-brown",
     });
   }
 
@@ -112,6 +119,7 @@ class ColorPicker {
     const dropdown = (this.#dropdown = this.#getDropdownRoot());
     dropdown.ariaOrientation = "horizontal";
     dropdown.ariaLabelledBy = "highlightColorPickerLabel";
+    this.#refreshRecentColors();
 
     return dropdown;
   }
@@ -129,26 +137,87 @@ class ColorPicker {
       div.id = `${this.#editor.id}_colorpicker_dropdown`;
     }
     for (const [name, color] of this.#uiManager.highlightColors) {
-      const button = document.createElement("button");
-      button.tabIndex = "0";
-      button.role = "option";
-      button.setAttribute("data-color", color);
-      button.title = name;
-      button.setAttribute("data-l10n-id", ColorPicker.#l10nColor[name]);
-      const swatch = document.createElement("span");
-      button.append(swatch);
-      swatch.className = "swatch";
-      swatch.style.backgroundColor = color;
-      button.ariaSelected = color === this.#defaultColor;
-      button.addEventListener("click", this.#colorSelect.bind(this, color), {
-        signal,
-      });
-      div.append(button);
+      div.append(this.#createColorButton(name, color, signal));
     }
+    this.#addCustomColorInput(div, signal);
 
     div.addEventListener("keydown", this.#keyDown.bind(this), { signal });
 
     return div;
+  }
+
+  #createColorButton(name, color, signal) {
+    const button = document.createElement("button");
+    button.tabIndex = "0";
+    button.role = "option";
+    button.setAttribute("data-color", color);
+    button.title = name;
+    const l10nId = ColorPicker.#l10nColor[name];
+    if (l10nId) {
+      button.setAttribute("data-l10n-id", l10nId);
+    }
+    const swatch = document.createElement("span");
+    button.append(swatch);
+    swatch.className = "swatch";
+    swatch.style.backgroundColor = color;
+    button.ariaSelected = color === this.#defaultColor;
+    button.addEventListener("click", this.#colorSelect.bind(this, color), {
+      signal,
+    });
+    return button;
+  }
+
+  /**
+   * Render the colors that were recently picked via the free-form color
+   * input, so that the same custom color can easily be reused. Only colors
+   * that aren't already part of the predefined palette are shown here.
+   */
+  #refreshRecentColors() {
+    if (!this.#dropdown) {
+      return;
+    }
+    for (const button of this.#dropdown.querySelectorAll(".recentColor")) {
+      button.remove();
+    }
+    const customColorRow = this.#dropdown.querySelector(".customColorRow");
+    const signal = this.#uiManager._signal;
+    for (const color of this.#uiManager.recentHighlightColors) {
+      const button = this.#createColorButton(color, color, signal);
+      button.classList.add("recentColor");
+      this.#dropdown.insertBefore(button, customColorRow);
+    }
+  }
+
+  #addCustomColorInput(div, signal) {
+    const label = document.createElement("label");
+    label.className = "customColorRow";
+    const input = (this.#customColorInput = document.createElement("input"));
+    input.type = "color";
+    input.className = "basicColorPicker";
+    input.tabIndex = 0;
+    input.value = this.#defaultColor;
+    input.setAttribute(
+      "data-l10n-id",
+      "pdfjs-editor-colorpicker-custom-color-input"
+    );
+    input.addEventListener(
+      "input",
+      event => {
+        this.#colorSelect(input.value.toUpperCase(), event);
+      },
+      { signal }
+    );
+    input.addEventListener(
+      "change",
+      () => {
+        const color = input.value.toUpperCase();
+        this.#uiManager.addRecentHighlightColor(color);
+        this.updateColor(color);
+      },
+      { signal }
+    );
+    label.append(input);
+    div.append(label);
   }
 
   #colorSelect(color, event) {
@@ -214,7 +283,10 @@ class ColorPicker {
       this.#openDropdown(event);
       return;
     }
-    this.#dropdown.lastElementChild?.focus();
+    // The custom-color <input> row isn't part of the arrow-key navigation,
+    // so target the last actual color option instead of the last child.
+    const buttons = this.#dropdown.querySelectorAll("button[data-color]");
+    buttons.at(-1)?.focus();
   }
 
   #keyDown(event) {
@@ -242,6 +314,7 @@ class ColorPicker {
     }
     const root = (this.#dropdown = this.#getDropdownRoot());
     this.#button.append(root);
+    this.#refreshRecentColors();
   }
 
   #pointerDown(event) {
@@ -280,16 +353,22 @@ class ColorPicker {
   }
 
   updateColor(color) {
+    const upperColor = color.toUpperCase();
     if (this.#buttonSwatch) {
-      this.#buttonSwatch.style.backgroundColor = color;
+      this.#buttonSwatch.style.backgroundColor = upperColor;
+    }
+    if (this.#customColorInput) {
+      this.#customColorInput.value = upperColor;
     }
     if (!this.#dropdown) {
       return;
     }
 
-    const i = this.#uiManager.highlightColors.values();
-    for (const child of this.#dropdown.children) {
-      child.ariaSelected = i.next().value === color.toUpperCase();
+    this.#refreshRecentColors();
+    for (const button of this.#dropdown.querySelectorAll(
+      "button[data-color]"
+    )) {
+      button.ariaSelected = button.getAttribute("data-color") === upperColor;
     }
   }
 
@@ -297,6 +376,7 @@ class ColorPicker {
     this.#button?.remove();
     this.#button = null;
     this.#buttonSwatch = null;
+    this.#customColorInput = null;
     this.#dropdown?.remove();
     this.#dropdown = null;
   }

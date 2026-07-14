@@ -1078,6 +1078,11 @@
   button:is(:hover, .selected) > .swatch {
     border: none;
   }
+
+  .basicColorPicker {
+    width: 16px;
+    height: 16px;
+  }
 }
 
 .basicColorPicker {
@@ -1235,6 +1240,21 @@
                 outline: 2px solid var(--hover-outline-color);
               }
             }
+
+            .recentColor:first-of-type,
+            .customColorRow {
+              border-block-start: 1px solid var(--editor-toolbar-border-color);
+              padding-block-start: 8px;
+            }
+
+            .customColorRow {
+              width: 100%;
+              display: flex;
+              justify-content: center;
+              align-items: center;
+              margin: 0;
+              cursor: pointer;
+            }
           }
         }
       }
@@ -1251,6 +1271,11 @@
   padding-inline: 10px;
   padding-block-end: 12px;
 
+  #editorHighlightAdoptColor {
+    align-self: stretch;
+    justify-content: center;
+  }
+
   .colorPicker {
     display: flex;
     flex-direction: column;
@@ -1258,9 +1283,11 @@
 
     .dropdown {
       display: flex;
-      justify-content: space-between;
+      justify-content: flex-start;
       align-items: center;
       flex-direction: row;
+      flex-wrap: wrap;
+      row-gap: 8px;
       height: auto;
 
       button {
@@ -1274,6 +1301,7 @@
         background: none;
         flex: 0 0 auto;
         padding: 0;
+        margin-inline-end: 8px;
 
         .swatch {
           width: 24px;
@@ -1290,6 +1318,28 @@
 
         &:is(:hover, :active, :focus-visible) > .swatch {
           outline: 2px solid var(--hover-outline-color);
+        }
+      }
+
+      .recentColor:first-of-type {
+        margin-inline-start: 8px;
+        padding-inline-start: 8px;
+        border-inline-start: 1px solid var(--swatch-border-color);
+      }
+
+      .customColorRow {
+        flex: 1 0 100%;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 0;
+        padding-block-start: 8px;
+        border-block-start: 1px solid var(--swatch-border-color);
+        cursor: pointer;
+
+        .basicColorPicker {
+          width: 24px;
+          height: 24px;
         }
       }
     }

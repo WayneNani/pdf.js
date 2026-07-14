@@ -2603,6 +2603,161 @@ describe("Highlight Editor", () => {
     });
   });
 
+  describe("Highlight editor color picker with an extended palette", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("tracemonkey.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must display the additional preset colors and a custom color input", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+          await page.waitForSelector("#editorHighlightColorPicker");
+
+          const titles = await page.evaluate(() =>
+            Array.from(
+              document.querySelectorAll(
+                "#editorHighlightColorPicker button[data-color]"
+              )
+            ).map(button => button.title)
+          );
+          for (const name of ["Orange", "Purple", "Cyan", "Gray", "Brown"]) {
+            expect(titles).withContext(`In ${browserName}`).toContain(name);
+          }
+
+          await page.waitForSelector(
+            "#editorHighlightColorPicker .customColorRow input.basicColorPicker"
+          );
+        })
+      );
+    });
+  });
+
+  describe("Highlight editor must support a free-form custom color", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        ".annotationEditorLayer",
+        null,
+        null,
+        { highlightEditorColors: "red=#AB0000" }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must highlight with a color chosen from the custom color input", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+
+          const customInputSelector =
+            "#editorHighlightColorPicker .customColorRow input.basicColorPicker";
+          await page.waitForSelector(customInputSelector);
+          await page.locator(customInputSelector).fill("#1a2b3c");
+
+          const selectedColor = await page.evaluate(() => {
+            const selected = document.querySelector(
+              '#editorHighlightColorPicker button[data-color][aria-selected="true"]'
+            );
+            return selected?.getAttribute("data-color");
+          });
+          expect(selectedColor)
+            .withContext(`In ${browserName}`)
+            .toEqual("#1A2B3C");
+
+          await highlightSpan(page, 1, "Abstract");
+          await page.waitForSelector(
+            `.page[data-page-number = "1"] svg.highlightOutline.selected`
+          );
+
+          const usedColor = await page.evaluate(() => {
+            const highlight = document.querySelector(
+              `.page[data-page-number = "1"] .canvasWrapper > svg.highlight`
+            );
+            return highlight.getAttribute("fill");
+          });
+
+          expect(usedColor).withContext(`In ${browserName}`).toEqual("#1A2B3C");
+        })
+      );
+    });
+  });
+
+  describe("Highlight editor must reproduce a previously used custom color", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        ".annotationEditorLayer",
+        null,
+        null,
+        { highlightEditorColors: "red=#AB0000" }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must reuse the custom color of a reselected highlight for new highlights", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+
+          const customInputSelector =
+            "#editorHighlightColorPicker .customColorRow input.basicColorPicker";
+          await page.waitForSelector(customInputSelector);
+          await page.locator(customInputSelector).fill("#1a2b3c");
+
+          await highlightSpan(page, 1, "Abstract");
+          const editorSelector0 = getEditorSelector(0);
+          await page.waitForSelector(editorSelector0);
+
+          await page.click("#editorHighlightColorPicker button[title = 'Red']");
+          await highlightSpan(page, 1, "Languages");
+          const editorSelector1 = getEditorSelector(1);
+          await page.waitForSelector(editorSelector1);
+
+          await waitForSerialized(page, 2);
+          let serialized = await getSerialized(page);
+          expect(serialized[0].color)
+            .withContext(`In ${browserName}`)
+            .toEqual([0x1a, 0x2b, 0x3c]);
+          expect(serialized[1].color)
+            .withContext(`In ${browserName}`)
+            .toEqual([0xab, 0x00, 0x00]);
+
+          // Reselecting the first (custom-colored) highlight must make its
+          // color the default one again, so that a brand new highlight
+          // reuses it without having to open the color picker.
+          await unselectEditor(page, editorSelector1);
+          await selectEditor(page, editorSelector0);
+          await unselectEditor(page, editorSelector0);
+
+          await highlightSpan(page, 1, "Introduction");
+          await waitForSerialized(page, 3);
+          serialized = await getSerialized(page);
+
+          expect(serialized[2].color)
+            .withContext(`In ${browserName}`)
+            .toEqual([0x1a, 0x2b, 0x3c]);
+        })
+      );
+    });
+  });
+
   describe("Highlight the selection but without a mouse or a keyboard", () => {
     let pages;
 

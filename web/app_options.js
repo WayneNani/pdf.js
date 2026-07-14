@@ -313,7 +313,9 @@ const defaultOptions = {
     /** @type {string} */
     value:
       "yellow=#FFFF98,green=#53FFBC,blue=#80EBFF,pink=#FFCBE6,red=#FF4F5F," +
-      "yellow_HCM=#FFFFCC,green_HCM=#53FFBC,blue_HCM=#80EBFF,pink_HCM=#F6B8FF,red_HCM=#C50043",
+      "orange=#FFC98F,purple=#D9B3FF,cyan=#B3F0FF,gray=#D7D7DB,brown=#E3C4A8," +
+      "yellow_HCM=#FFFFCC,green_HCM=#53FFBC,blue_HCM=#80EBFF,pink_HCM=#F6B8FF,red_HCM=#C50043," +
+      "orange_HCM=#FFD280,purple_HCM=#C86AFF,cyan_HCM=#80EBFF,gray_HCM=#CFCFD8,brown_HCM=#B8956A",
     kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
   },
   historyUpdateUrl: {

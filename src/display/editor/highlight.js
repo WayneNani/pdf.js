@@ -289,7 +289,7 @@ class HighlightEditor extends AnnotationEditor {
   static updateDefaultParams(type, value) {
     switch (type) {
       case AnnotationEditorParamsType.HIGHLIGHT_COLOR:
-        HighlightEditor._defaultColor = value;
+        HighlightEditor._defaultColor = value.toUpperCase();
         break;
       case AnnotationEditorParamsType.HIGHLIGHT_THICKNESS:
         HighlightEditor._defaultThickness = value;

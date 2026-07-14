@@ -39,6 +39,10 @@ import {
 import { FloatingToolbar } from "./toolbar.js";
 import { internalOpt } from "../../shared/internal_evt.js";
 
+// Maximum number of custom (i.e. non-preset) highlight colors kept around so
+// that a previously picked free-form color can be reused later on.
+const MAX_RECENT_HIGHLIGHT_COLORS = 5;
+
 function bindEvents(obj, element, names) {
   for (const name of names) {
     element.addEventListener(name, obj[name].bind(obj));
@@ -788,6 +792,10 @@ class AnnotationEditorUIManager {
 
   #highlightColors = null;
 
+  #highlightColorForNew = null;
+
+  #recentHighlightColors = [];
+
   #highlightWhenShiftUp = false;
 
   #floatingToolbar = null;
@@ -1204,6 +1212,34 @@ class AnnotationEditorUIManager {
   }
 
   /**
+   * The custom (i.e. non-preset) highlight colors which were recently used,
+   * most-recently-used first, so that they can be picked again easily.
+   * @returns {Array<string>}
+   */
+  get recentHighlightColors() {
+    return this.#recentHighlightColors;
+  }
+
+  /**
+   * Remember a custom highlight color so that it can be reused later on.
+   * Preset colors are ignored since they're already always available.
+   * @param {string} color
+   */
+  addRecentHighlightColor(color) {
+    color = color.toUpperCase();
+    if (this.highlightColorNames?.has(color)) {
+      return;
+    }
+    const recent = this.#recentHighlightColors;
+    const index = recent.indexOf(color);
+    if (index !== -1) {
+      recent.splice(index, 1);
+    }
+    recent.unshift(color);
+    recent.length = Math.min(recent.length, MAX_RECENT_HIGHLIGHT_COLORS);
+  }
+
+  /**
    * Set the current drawing session.
    * @param {AnnotationEditorLayer} layer
    */
@@ -1434,6 +1470,7 @@ class AnnotationEditorUIManager {
 
     const layer = this.#getLayerForTextLayer(textLayer);
     const isNoneMode = this.#mode === AnnotationEditorType.NONE;
+    const color = this.#getHighlightColorForNewEditor();
     const callback = () => {
       const editor = layer?.createAndAddNewEditor({ x: 0, y: 0 }, false, {
         methodOfCreation,
@@ -1443,6 +1480,7 @@ class AnnotationEditorUIManager {
         focusNode,
         focusOffset,
         text,
+        color,
       });
       if (isNoneMode) {
         this.showAllEditors("highlight", true, /* updateButton = */ true);
@@ -2041,6 +2079,14 @@ class AnnotationEditorUIManager {
     }
     this.#editorTypes = types;
     for (const editorType of this.#editorTypes) {
+      if (editorType._editorType === AnnotationEditorType.HIGHLIGHT) {
+        for (const [type, value] of editorType.defaultPropertiesToUpdate) {
+          if (type === AnnotationEditorParamsType.HIGHLIGHT_COLOR && value) {
+            this.#highlightColorForNew = value.toUpperCase();
+            break;
+          }
+        }
+      }
       this.#dispatchUpdateUI(editorType.defaultPropertiesToUpdate);
     }
   }
@@ -2257,6 +2303,9 @@ class AnnotationEditorUIManager {
       case AnnotationEditorParamsType.CREATE:
         this.currentLayer.addNewEditor(value);
         return;
+      case AnnotationEditorParamsType.HIGHLIGHT_ADOPT_COLOR:
+        this.adoptHighlightColorFromSelection();
+        return;
       case AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL:
         this._eventBus.dispatch("reporttelemetry", {
           source: this,
@@ -2277,6 +2326,8 @@ class AnnotationEditorUIManager {
       for (const editor of this.#selectedEditors) {
         editor.updateParams(type, value);
       }
+    } else if (type === AnnotationEditorParamsType.HIGHLIGHT_COLOR) {
+      this.#setHighlightColorForNew(value);
     } else {
       for (const editorType of this.#editorTypes) {
         editorType.updateDefaultParams(type, value);
@@ -2461,6 +2512,7 @@ class AnnotationEditorUIManager {
 
     this.#activeEditor = editor;
     if (editor) {
+      this.#syncHighlightColorFromEditor(editor);
       this.#dispatchUpdateUI(editor.propertiesToUpdate);
     }
   }
@@ -2502,6 +2554,7 @@ class AnnotationEditorUIManager {
     }
     this.#selectedEditors.add(editor);
     editor.select();
+    this.#syncHighlightColorFromEditor(editor);
     this.#dispatchUpdateUI(editor.propertiesToUpdate);
     this.#dispatchUpdateStates({
       hasSelectedEditor: true,
@@ -2529,10 +2582,90 @@ class AnnotationEditorUIManager {
 
     this.#selectedEditors.add(editor);
     editor.select();
+    this.#syncHighlightColorFromEditor(editor);
     this.#dispatchUpdateUI(editor.propertiesToUpdate);
     this.#dispatchUpdateStates({
       hasSelectedEditor: true,
     });
+  }
+
+  /**
+   * When a highlight is (re)selected, make its color the default one so
+   * that the next highlight created from scratch reuses the same color,
+   * even if it was a free-form (i.e. non-preset) color.
+   * @param {AnnotationEditor} editor
+   */
+  #syncHighlightColorFromEditor(editor) {
+    if (editor.mode !== AnnotationEditorType.HIGHLIGHT || !editor.color) {
+      return;
+    }
+    const color = editor.color.toUpperCase();
+    this.#setHighlightColorForNew(color);
+    if (!this.highlightColorNames?.has(color)) {
+      this.addRecentHighlightColor(color);
+    }
+  }
+
+  /**
+   * Adopt the color of the currently selected highlight as the color that
+   * will be used for the next highlights.
+   */
+  adoptHighlightColorFromSelection() {
+    for (const editor of this.#selectedEditors) {
+      if (editor.mode === AnnotationEditorType.HIGHLIGHT && editor.color) {
+        this.#setHighlightColorForNew(editor.color);
+        if (!this.highlightColorNames?.has(editor.color.toUpperCase())) {
+          this.addRecentHighlightColor(editor.color);
+        }
+        return;
+      }
+    }
+  }
+
+  /**
+   * Return the color to use for a newly created highlight.
+   * @returns {string | null}
+   */
+  #getHighlightColorForNewEditor() {
+    if (this.#highlightColorForNew) {
+      return this.#highlightColorForNew;
+    }
+    for (const editorType of this.#editorTypes) {
+      if (editorType._editorType !== AnnotationEditorType.HIGHLIGHT) {
+        continue;
+      }
+      for (const [type, value] of editorType.defaultPropertiesToUpdate) {
+        if (type === AnnotationEditorParamsType.HIGHLIGHT_COLOR) {
+          return value;
+        }
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Update the color that will be used for the next highlights.
+   * @param {string} color
+   */
+  #setHighlightColorForNew(color) {
+    if (!color) {
+      return;
+    }
+    color = color.toUpperCase();
+    this.#highlightColorForNew = color;
+    for (const editorType of this.#editorTypes || []) {
+      if (editorType._editorType === AnnotationEditorType.HIGHLIGHT) {
+        editorType.updateDefaultParams(
+          AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+          color
+        );
+        break;
+      }
+    }
+    this.#mainHighlightColorPicker?.updateColor(color);
+    this.#dispatchUpdateUI([
+      [AnnotationEditorParamsType.HIGHLIGHT_COLOR, color],
+    ]);
   }
 
   get firstSelectedEditor() {
@@ -2693,6 +2826,20 @@ class AnnotationEditorUIManager {
    * Unselect all the selected editors.
    */
   unselectAll() {
+    if (this.hasSelection) {
+      const lastSelectedEditor = this.#lastSelectedEditor;
+      if (lastSelectedEditor) {
+        this.#syncHighlightColorFromEditor(lastSelectedEditor);
+      }
+      for (const editor of this.#selectedEditors) {
+        editor.unselect();
+      }
+      this.#selectedEditors.clear();
+      this.#dispatchUpdateStates({
+        hasSelectedEditor: false,
+      });
+    }
+
     if (this.#activeEditor) {
       // An editor is being edited so just commit it.
       this.#activeEditor.commitOrRemove();
@@ -2708,17 +2855,6 @@ class AnnotationEditorUIManager {
     }
 
     this.#commentManager?.destroyPopup();
-
-    if (!this.hasSelection) {
-      return;
-    }
-    for (const editor of this.#selectedEditors) {
-      editor.unselect();
-    }
-    this.#selectedEditors.clear();
-    this.#dispatchUpdateStates({
-      hasSelectedEditor: false,
-    });
   }
 
   translateSelectedEditors(x, y, noCommit = false) {

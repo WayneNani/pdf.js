@@ -468,6 +468,28 @@ pdfjs-editor-colorpicker-pink =
     .title = Pink
 pdfjs-editor-colorpicker-red =
     .title = Red
+pdfjs-editor-colorpicker-orange =
+    .title = Orange
+pdfjs-editor-colorpicker-purple =
+    .title = Purple
+pdfjs-editor-colorpicker-cyan =
+    .title = Cyan
+pdfjs-editor-colorpicker-gray =
+    .title = Gray
+pdfjs-editor-colorpicker-brown =
+    .title = Brown
+
+# This is the button that opens a native color picker so the user can pick a
+# custom highlight color that isn't part of the predefined swatches.
+pdfjs-editor-colorpicker-custom-color-input =
+    .title = Choose a custom color
+    .aria-label = Choose a custom color
+
+# Button shown in the highlight toolbar to adopt the color of the currently
+# selected highlight as the color used for the next highlights.
+pdfjs-editor-highlight-adopt-color-button =
+    .title = Use selected highlight color
+    .label = Use selected color
 
 ## Show all highlights
 ## This is a toggle button to show/hide all the highlights.
