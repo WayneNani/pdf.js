@@ -15,6 +15,7 @@
 
 import {
   awaitPromise,
+  clearEditors,
   closePages,
   getAnnotationSelector,
   getEditorSelector,
@@ -1154,6 +1155,71 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             "#editorFreeHighlightThickness:not([disabled])"
           );
+        })
+      );
+    });
+  });
+
+  describe("Straight line highlighting", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait("tracemonkey.pdf", ".annotationEditorLayer");
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must draw a straight line instead of a freehand path when the straight line mode is toggled on", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+
+          const rect = await getRect(page, ".annotationEditorLayer");
+          const x = rect.x + 20;
+          const y1 = rect.y + 20;
+          const y2 = rect.y + 220;
+
+          const drag = async () => {
+            const clickHandle = await waitForPointerUp(page);
+            await page.mouse.move(x, y1);
+            await page.mouse.down();
+            for (let y = y1; y <= y2; y += (y2 - y1) / 10) {
+              await page.mouse.move(x, Math.round(y));
+            }
+            await page.mouse.up();
+            await awaitPromise(clickHandle);
+          };
+
+          // By default (toggle off) dragging the pointer must still produce
+          // the current freehand behaviour, i.e. more than just the two
+          // (start/end) points.
+          await drag();
+          await waitForSerialized(page, 1);
+          let points = await getFirstSerialized(
+            page,
+            e => e.outlines.points[0]
+          );
+          expect(points.length > 4)
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+
+          await clearEditors("highlight", page);
+
+          // Enable the straight line toggle.
+          await page.waitForSelector(
+            "#editorHighlightStraightLineButton[aria-pressed=false]"
+          );
+          await page.click("#editorHighlightStraightLineButton");
+          await page.waitForSelector(
+            "#editorHighlightStraightLineButton[aria-pressed=true]"
+          );
+
+          await drag();
+          await waitForSerialized(page, 1);
+          points = await getFirstSerialized(page, e => e.outlines.points[0]);
+          expect(points.length).withContext(`In ${browserName}`).toEqual(4);
         })
       );
     });

@@ -78,6 +78,8 @@ class HighlightEditor extends AnnotationEditor {
 
   static _defaultThickness = 12;
 
+  static _defaultStraightLine = false;
+
   static _type = "highlight";
 
   static _editorType = AnnotationEditorType.HIGHLIGHT;
@@ -294,6 +296,9 @@ class HighlightEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.HIGHLIGHT_THICKNESS:
         HighlightEditor._defaultThickness = value;
         break;
+      case AnnotationEditorParamsType.HIGHLIGHT_STRAIGHT_LINE:
+        HighlightEditor._defaultStraightLine = value;
+        break;
     }
   }
 
@@ -331,6 +336,10 @@ class HighlightEditor extends AnnotationEditor {
       [
         AnnotationEditorParamsType.HIGHLIGHT_THICKNESS,
         HighlightEditor._defaultThickness,
+      ],
+      [
+        AnnotationEditorParamsType.HIGHLIGHT_STRAIGHT_LINE,
+        HighlightEditor._defaultStraightLine,
       ],
     ];
   }
@@ -854,7 +863,10 @@ class HighlightEditor extends AnnotationEditor {
   }
 
   static #highlightMove(parent, event) {
-    if (this._freeHighlight.add(event)) {
+    const hasChanged = HighlightEditor._defaultStraightLine
+      ? this._freeHighlight.setEndPoint(event)
+      : this._freeHighlight.add(event);
+    if (hasChanged) {
       // Redraw only if the point has been added.
       parent.drawLayer.updateProperties(this._freeHighlightId, {
         path: {

@@ -493,6 +493,13 @@ pdfjs-editor-highlight-adopt-color-button =
     .title = Use selected highlight color
     .label = Use selected color
 
+## Straight line highlighting
+## This is a toggle button to switch free highlighting between freehand drawing and straight lines.
+
+pdfjs-editor-highlight-straight-line-button-label = Straight line
+pdfjs-editor-highlight-straight-line-button =
+    .title = Draw straight lines when highlighting items other than text
+
 ## Show all highlights
 ## This is a toggle button to show/hide all the highlights.
 

@@ -50,6 +50,10 @@ class FreeDrawOutliner {
 
   #points = [];
 
+  #startX;
+
+  #startY;
+
   static #MIN_DIST = 8;
 
   static #MIN_DIFF = 2;
@@ -66,6 +70,8 @@ class FreeDrawOutliner {
     this.#min = FreeDrawOutliner.#MIN * scaleFactor;
     this.#scaleFactor = scaleFactor;
     this.#points.push(x, y);
+    this.#startX = x;
+    this.#startY = y;
   }
 
   isEmpty() {
@@ -204,6 +210,20 @@ class FreeDrawOutliner {
       ((y1 + y2) / 2 - layerY) / layerHeight
     );
     return true;
+  }
+
+  /**
+   * Draw a straight line from the initial point to the given point, instead
+   * of a freehand curve. Used when the straight-line drawing mode is
+   * enabled.
+   */
+  setEndPoint(point) {
+    this.#top = [];
+    this.#bottom = [];
+    this.#last = new Float32Array(18);
+    this.#last.set([NaN, NaN, NaN, NaN, this.#startX, this.#startY], 6);
+    this.#points = [this.#startX, this.#startY];
+    return this.add(point);
   }
 
   toSVGPath() {

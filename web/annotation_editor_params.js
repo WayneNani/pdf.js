@@ -34,6 +34,7 @@ import { internalOpt } from "./internal_evt.js";
  * @property {HTMLInputElement} editorInkOpacity
  * @property {HTMLButtonElement} editorStampAddImage
  * @property {HTMLInputElement} editorFreeHighlightThickness
+ * @property {HTMLButtonElement} editorHighlightStraightLineButton
  * @property {HTMLButtonElement} editorHighlightShowAll
  * @property {HTMLButtonElement} editorHighlightAdoptColor
  * @property {HTMLButtonElement} editorSignatureAddSignature
@@ -61,6 +62,7 @@ class AnnotationEditorParams {
     editorInkOpacity,
     editorStampAddImage,
     editorFreeHighlightThickness,
+    editorHighlightStraightLineButton,
     editorHighlightShowAll,
     editorHighlightAdoptColor,
     editorSignatureAddSignature,
@@ -174,6 +176,11 @@ class AnnotationEditorParams {
     editorFreeHighlightThickness.addEventListener("input", function () {
       dispatchEvent("HIGHLIGHT_THICKNESS", this.valueAsNumber);
     });
+    editorHighlightStraightLineButton.addEventListener("click", function () {
+      const checked = this.getAttribute("aria-pressed") === "true";
+      this.setAttribute("aria-pressed", !checked);
+      dispatchEvent("HIGHLIGHT_STRAIGHT_LINE", !checked);
+    });
     editorHighlightShowAll.addEventListener("click", function () {
       const checked = this.getAttribute("aria-pressed") === "true";
       this.setAttribute("aria-pressed", !checked);
@@ -217,6 +224,13 @@ class AnnotationEditorParams {
               break;
             case AnnotationEditorParamsType.HIGHLIGHT_FREE:
               editorFreeHighlightThickness.disabled = !value;
+              editorHighlightStraightLineButton.disabled = !value;
+              break;
+            case AnnotationEditorParamsType.HIGHLIGHT_STRAIGHT_LINE:
+              editorHighlightStraightLineButton.setAttribute(
+                "aria-pressed",
+                value
+              );
               break;
             case AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL:
               editorHighlightShowAll.setAttribute("aria-pressed", value);

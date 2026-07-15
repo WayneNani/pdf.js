@@ -1393,6 +1393,7 @@
     }
   }
 
+  #editorHighlightStraightLine,
   #editorHighlightVisibility {
     display: flex;
     flex-direction: column;
@@ -1418,6 +1419,10 @@
       justify-content: space-between;
       align-items: center;
       align-self: stretch;
+
+      :is(& > .toggle-button[disabled]) {
+        opacity: 0.4;
+      }
     }
   }
 }

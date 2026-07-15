@@ -346,6 +346,9 @@ function getViewerConfiguration() {
       editorFreeHighlightThickness: document.getElementById(
         "editorFreeHighlightThickness"
       ),
+      editorHighlightStraightLineButton: document.getElementById(
+        "editorHighlightStraightLineButton"
+      ),
       editorHighlightShowAll: document.getElementById("editorHighlightShowAll"),
       editorHighlightAdoptColor: document.getElementById(
         "editorHighlightAdoptColor"
