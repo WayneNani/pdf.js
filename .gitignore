@@ -8,3 +8,9 @@ node_modules/
 examples/node/svgdump/
 examples/node/pdf2png/*.png
 .vscode/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+.beads/proxieddb/
