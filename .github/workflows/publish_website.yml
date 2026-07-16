@@ -1,8 +1,8 @@
+# Disabled on this fork: the friend-test preview uses deploy-preview.yml
+# (npx gulp generic → build/generic) instead of the full documentation site.
 name: Publish website
 on:
-  push:
-    branches:
-      - master
+  workflow_dispatch: # manual only; automatic deploy is deploy-preview.yml
 permissions:
   contents: read
 
