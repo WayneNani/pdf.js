@@ -2303,9 +2303,6 @@ class AnnotationEditorUIManager {
       case AnnotationEditorParamsType.CREATE:
         this.currentLayer.addNewEditor(value);
         return;
-      case AnnotationEditorParamsType.HIGHLIGHT_ADOPT_COLOR:
-        this.adoptHighlightColorFromSelection();
-        return;
       case AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL:
         this._eventBus.dispatch("reporttelemetry", {
           source: this,
@@ -2603,22 +2600,6 @@ class AnnotationEditorUIManager {
     this.#setHighlightColorForNew(color);
     if (!this.highlightColorNames?.has(color)) {
       this.addRecentHighlightColor(color);
-    }
-  }
-
-  /**
-   * Adopt the color of the currently selected highlight as the color that
-   * will be used for the next highlights.
-   */
-  adoptHighlightColorFromSelection() {
-    for (const editor of this.#selectedEditors) {
-      if (editor.mode === AnnotationEditorType.HIGHLIGHT && editor.color) {
-        this.#setHighlightColorForNew(editor.color);
-        if (!this.highlightColorNames?.has(editor.color.toUpperCase())) {
-          this.addRecentHighlightColor(editor.color);
-        }
-        return;
-      }
     }
   }
 

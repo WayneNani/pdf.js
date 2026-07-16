@@ -36,7 +36,6 @@ import { internalOpt } from "./internal_evt.js";
  * @property {HTMLInputElement} editorFreeHighlightThickness
  * @property {HTMLButtonElement} editorHighlightStraightLineButton
  * @property {HTMLButtonElement} editorHighlightShowAll
- * @property {HTMLButtonElement} editorHighlightAdoptColor
  * @property {HTMLButtonElement} editorSignatureAddSignature
  */
 
@@ -64,7 +63,6 @@ class AnnotationEditorParams {
     editorFreeHighlightThickness,
     editorHighlightStraightLineButton,
     editorHighlightShowAll,
-    editorHighlightAdoptColor,
     editorSignatureAddSignature,
   }) {
     const { eventBus } = this;
@@ -185,9 +183,6 @@ class AnnotationEditorParams {
       const checked = this.getAttribute("aria-pressed") === "true";
       this.setAttribute("aria-pressed", !checked);
       dispatchEvent("HIGHLIGHT_SHOW_ALL", !checked);
-    });
-    editorHighlightAdoptColor.addEventListener("click", () => {
-      dispatchEvent("HIGHLIGHT_ADOPT_COLOR", true);
     });
     editorSignatureAddSignature.addEventListener("click", () => {
       dispatchEvent("CREATE");

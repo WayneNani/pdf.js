@@ -350,9 +350,6 @@ function getViewerConfiguration() {
         "editorHighlightStraightLineButton"
       ),
       editorHighlightShowAll: document.getElementById("editorHighlightShowAll"),
-      editorHighlightAdoptColor: document.getElementById(
-        "editorHighlightAdoptColor"
-      ),
     },
     printContainer: document.getElementById("printContainer"),
     editorUndoBar: {

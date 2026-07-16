@@ -1271,11 +1271,6 @@
   padding-inline: 10px;
   padding-block-end: 12px;
 
-  #editorHighlightAdoptColor {
-    align-self: stretch;
-    justify-content: center;
-  }
-
   .colorPicker {
     display: flex;
     flex-direction: column;

@@ -487,12 +487,6 @@ pdfjs-editor-colorpicker-custom-color-input =
     .title = Choose a custom color
     .aria-label = Choose a custom color
 
-# Button shown in the highlight toolbar to adopt the color of the currently
-# selected highlight as the color used for the next highlights.
-pdfjs-editor-highlight-adopt-color-button =
-    .title = Use selected highlight color
-    .label = Use selected color
-
 ## Straight line highlighting
 ## This is a toggle button to switch free highlighting between freehand drawing and straight lines.
 
