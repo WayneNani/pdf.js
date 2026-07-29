@@ -874,8 +874,10 @@ class AnnotationEditorLayer {
    * @param {PointerEvent} event
    */
   pointerdown(event) {
-    if (this.#uiManager.getMode() === AnnotationEditorType.HIGHLIGHT ||
-        this.#uiManager.getMode() === AnnotationEditorType.UNDERLINE) {
+    if (
+      this.#uiManager.getMode() === AnnotationEditorType.HIGHLIGHT ||
+      this.#uiManager.getMode() === AnnotationEditorType.UNDERLINE
+    ) {
       this.enableTextSelection();
     }
     if (this.#hadPointerDown) {

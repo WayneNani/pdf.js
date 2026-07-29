@@ -5440,7 +5440,10 @@ class SquigglyAnnotation extends MarkupAnnotation {
       return null;
     }
 
-    const appearanceBuffer = [`${getPdfColor(color, /* isFill */ false)}`, "[] 0 d 1 w"];
+    const appearanceBuffer = [
+      `${getPdfColor(color, /* isFill */ false)}`,
+      "[] 0 d 1 w",
+    ];
     if (opacity !== 1) {
       appearanceBuffer.unshift("/R0 gs");
     }
@@ -5453,7 +5456,9 @@ class SquigglyAnnotation extends MarkupAnnotation {
       let x = quadPoints[i + 4];
       const y = bottom;
       const xEnd = quadPoints[i + 6];
-      appearanceBuffer.push(`${numberToString(x)} ${numberToString(y + shift)} m`);
+      appearanceBuffer.push(
+        `${numberToString(x)} ${numberToString(y + shift)} m`
+      );
       do {
         x += 2;
         shift = shift === 0 ? dy : 0;
