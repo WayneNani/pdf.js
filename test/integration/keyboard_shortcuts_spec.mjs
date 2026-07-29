@@ -46,6 +46,44 @@ describe("Configurable keyboard shortcuts", () => {
       );
     });
 
+    it("must capture a real key press into a binding", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await openKeyboardShortcuts(page);
+
+          await page.click(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding'
+          );
+          await page.waitForSelector(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding.capturing'
+          );
+
+          // Use a real keyboard event — dialog.dispatchEvent alone misses the
+          // window capture listener used after re-render focus loss.
+          await page.keyboard.press("q");
+
+          await page.waitForFunction(() => {
+            const button = document.querySelector(
+              '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding'
+            );
+            return (
+              button &&
+              !button.classList.contains("capturing") &&
+              /q/i.test(button.textContent || "")
+            );
+          });
+
+          const label = await page.$eval(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding',
+            el => el.textContent
+          );
+          expect(label.toLowerCase())
+            .withContext(`In ${browserName}`)
+            .toContain("q");
+        })
+      );
+    });
+
     it("must reject colliding shortcut assignments", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
@@ -58,18 +96,7 @@ describe("Configurable keyboard shortcuts", () => {
             '.shortcutsRow[data-action-id="underline"] .shortcutsBinding.capturing'
           );
 
-          // Dispatch on the dialog so the capture listener sees the key.
-          await page.evaluate(() => {
-            const dialog = document.getElementById("keyboardShortcutsDialog");
-            dialog.dispatchEvent(
-              new KeyboardEvent("keydown", {
-                key: "h",
-                code: "KeyH",
-                bubbles: true,
-                cancelable: true,
-              })
-            );
-          });
+          await page.keyboard.press("h");
 
           await page.waitForFunction(() => {
             const status = document.getElementById("keyboardShortcutsStatus");
@@ -89,6 +116,46 @@ describe("Configurable keyboard shortcuts", () => {
         })
       );
     });
+
+    it("must cancel capture on Escape", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await openKeyboardShortcuts(page);
+
+          const before = await page.$eval(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding',
+            el => el.textContent
+          );
+
+          await page.click(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding'
+          );
+          await page.waitForSelector(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding.capturing'
+          );
+
+          await page.keyboard.press("Escape");
+
+          await page.waitForSelector(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding.capturing',
+            { hidden: true }
+          );
+
+          const after = await page.$eval(
+            '.shortcutsRow[data-action-id="rotateCw"] .shortcutsBinding',
+            el => el.textContent
+          );
+          expect(after).withContext(`In ${browserName}`).toBe(before);
+
+          // Dialog should still be open after canceling capture.
+          const dialogOpen = await page.$eval(
+            "#keyboardShortcutsDialog",
+            el => !el.hidden && el.open !== false
+          );
+          expect(dialogOpen).withContext(`In ${browserName}`).toBeTrue();
+        })
+      );
+    });
   });
 
   describe("Custom bindings", () => {
@@ -104,6 +171,7 @@ describe("Configurable keyboard shortcuts", () => {
           keyboardShortcuts: JSON.stringify({
             highlight: "b",
             underline: "u",
+            select: "s",
             "highlight.yellow": "1",
           }),
           highlightEditorColors: "yellow=#FFFF98,green=#53FFBC",
@@ -141,6 +209,64 @@ describe("Configurable keyboard shortcuts", () => {
           expect(String(selected).toLowerCase())
             .withContext(`In ${browserName}`)
             .toMatch(/yellow|#ffff98/);
+        })
+      );
+    });
+
+    it("must exit highlight/underline and activate select with s", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await page.keyboard.press("b");
+          await page.waitForSelector(".annotationEditorLayer.highlightEditing");
+
+          await page.keyboard.press("s");
+
+          await page.waitForFunction(() => {
+            const layer = document.querySelector(".annotationEditorLayer");
+            return (
+              layer &&
+              !layer.classList.contains("highlightEditing") &&
+              !layer.classList.contains("underlineEditing")
+            );
+          });
+
+          const editing = await page.evaluate(() => {
+            const layer = document.querySelector(".annotationEditorLayer");
+            return {
+              highlight: layer?.classList.contains("highlightEditing"),
+              underline: layer?.classList.contains("underlineEditing"),
+              selectChecked: document
+                .getElementById("cursorSelectTool")
+                ?.getAttribute("aria-checked"),
+            };
+          });
+          expect(editing.highlight)
+            .withContext(`In ${browserName}`)
+            .toBeFalse();
+          expect(editing.underline)
+            .withContext(`In ${browserName}`)
+            .toBeFalse();
+          expect(editing.selectChecked)
+            .withContext(`In ${browserName}`)
+            .toBe("true");
+        })
+      );
+    });
+
+    it("must keep underline (u) working after select (s)", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await page.keyboard.press("b");
+          await page.waitForSelector(".annotationEditorLayer.highlightEditing");
+          await page.keyboard.press("s");
+          await page.waitForFunction(() => {
+            const layer = document.querySelector(".annotationEditorLayer");
+            return layer && !layer.classList.contains("highlightEditing");
+          });
+
+          await page.keyboard.press("u");
+          await page.waitForSelector(".annotationEditorLayer.underlineEditing");
+          expect(true).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });

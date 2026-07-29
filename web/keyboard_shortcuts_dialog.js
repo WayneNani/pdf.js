@@ -55,7 +55,9 @@ class KeyboardShortcutsDialog {
 
   #capturingActionId = null;
 
-  #boundKeyDown = this.#onDialogKeyDown.bind(this);
+  #captureListening = false;
+
+  #boundKeyDown = this.#onCaptureKeyDown.bind(this);
 
   /**
    * @param {KeyboardShortcutsDialogOptions} options
@@ -81,7 +83,7 @@ class KeyboardShortcutsDialog {
     closeButton.addEventListener("click", this.close.bind(this));
     resetButton.addEventListener("click", () => {
       this.#draft = { ...DEFAULT_SHORTCUTS };
-      this.#capturingActionId = null;
+      this.#stopCapture();
       this.#clearStatus();
       this.#render();
       this.#persist();
@@ -89,23 +91,51 @@ class KeyboardShortcutsDialog {
 
     this.#overlayManager.register(this.#dialog);
     this.#dialog.addEventListener("close", () => {
-      this.#capturingActionId = null;
-      this.#dialog.removeEventListener("keydown", this.#boundKeyDown, true);
+      this.#stopCapture();
     });
   }
 
   async open() {
     this.#draft = parseShortcutsPreference(AppOptions.get("keyboardShortcuts"));
-    this.#capturingActionId = null;
+    this.#stopCapture();
     this.#clearStatus();
     await this.#render();
-    this.#dialog.addEventListener("keydown", this.#boundKeyDown, true);
     await this.#overlayManager.open(this.#dialog);
   }
 
   async close() {
-    this.#capturingActionId = null;
+    this.#stopCapture();
     await this.#overlayManager.close(this.#dialog);
+  }
+
+  #startCapture(actionId) {
+    this.#capturingActionId = actionId;
+    this.#clearStatus();
+    if (!this.#captureListening) {
+      // Listen on window in the capture phase so key events are seen even
+      // after #render() replaces the focused binding button.
+      window.addEventListener("keydown", this.#boundKeyDown, true);
+      this.#captureListening = true;
+    }
+  }
+
+  #stopCapture() {
+    this.#capturingActionId = null;
+    if (this.#captureListening) {
+      window.removeEventListener("keydown", this.#boundKeyDown, true);
+      this.#captureListening = false;
+    }
+  }
+
+  #focusCapturingButton() {
+    const actionId = this.#capturingActionId;
+    if (!actionId) {
+      return;
+    }
+    const button = this.#list.querySelector(
+      `.shortcutsBinding[data-action-id="${CSS.escape(actionId)}"]`
+    );
+    button?.focus({ preventScroll: true });
   }
 
   #clearStatus() {
@@ -166,9 +196,8 @@ class KeyboardShortcutsDialog {
         );
       }
       bindingButton.addEventListener("click", () => {
-        this.#capturingActionId = actionId;
-        this.#clearStatus();
-        this.#render();
+        this.#startCapture(actionId);
+        this.#render().then(() => this.#focusCapturingButton());
       });
 
       const clearButton = document.createElement("button");
@@ -178,7 +207,7 @@ class KeyboardShortcutsDialog {
       clearButton.disabled = !binding;
       clearButton.addEventListener("click", () => {
         this.#draft[actionId] = "";
-        this.#capturingActionId = null;
+        this.#stopCapture();
         this.#clearStatus();
         this.#render();
         this.#persist();
@@ -191,12 +220,12 @@ class KeyboardShortcutsDialog {
     await this.#l10n.translateOnce(this.#list);
   }
 
-  async #onDialogKeyDown(evt) {
+  async #onCaptureKeyDown(evt) {
     if (!this.#capturingActionId) {
       return;
     }
     if (evt.key === "Escape") {
-      this.#capturingActionId = null;
+      this.#stopCapture();
       this.#clearStatus();
       await this.#render();
       evt.preventDefault();
@@ -230,7 +259,7 @@ class KeyboardShortcutsDialog {
     }
 
     this.#draft[actionId] = binding;
-    this.#capturingActionId = null;
+    this.#stopCapture();
     this.#clearStatus();
     await this.#render();
     await this.#persist();

@@ -3522,6 +3522,13 @@ function handleConfigurableShortcut(actionId) {
     case "tool":
       switch (actionId) {
         case "select":
+          // Exit annotation-editor mode first — switchTool is a no-op while
+          // an editor tool is active (cursor tools are disabled).
+          this.eventBus.dispatch("switchannotationeditormode", {
+            source: this,
+            mode: AnnotationEditorType.NONE,
+            isFromKeyboard: true,
+          });
           this.pdfCursorTools?.switchTool(CursorTool.SELECT);
           return true;
         case "rotateCw":
