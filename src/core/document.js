@@ -21,7 +21,6 @@ import {
   InvalidPDFException,
   isArrayEqual,
   makeArr,
-  objectSize,
   PageActionEventType,
   RenderingIntentFlag,
   shadow,
@@ -81,6 +80,7 @@ import { XFAFactory } from "./xfa/factory.js";
 import { XRef } from "./xref.js";
 
 const LETTER_SIZE_MEDIABOX = [0, 0, 612, 792];
+const SIGNATURE_TAIL_CHUNK_SIZE = 65536;
 
 class Page {
   #resourcesPromise = null;
@@ -1004,11 +1004,10 @@ function find(stream, signature, limit = 1024, backwards = false) {
 class PDFDocument {
   #pagePromises = new Map();
 
-  // Map<id, {data: Uint8Array[2], pkcs7: Uint8Array}> — populated by the
+  // Map<id, {byteRange: number[4], pkcs7: Uint8Array}> — populated by the
   // `signatures` getter, consumed by `getSignatureData`. We deliberately
-  // keep the byte payload out of the metadata array so it doesn't ride
-  // the worker→main `postMessage` boundary unless the viewer actually
-  // asks to verify (one shot per signature).
+  // keep the signed byte spans out of the metadata array and only slice
+  // them out of the stream when the viewer actually asks to verify.
   #signatureData = null;
 
   #version = null;
@@ -1195,7 +1194,10 @@ class PDFDocument {
           recursionDepth
         );
       }
-      const isSignature = isName(field.get("FT"), "Sig");
+      const isSignature = isName(
+        getInheritableProperty({ dict: field, key: "FT" }),
+        "Sig"
+      );
       const rectangle = field.get("Rect");
       const isInvisible =
         Array.isArray(rectangle) && rectangle.every(value => value === 0);
@@ -1280,13 +1282,13 @@ class PDFDocument {
     if (!streams) {
       return null;
     }
-    const data = Object.create(null);
+    const data = new Map();
     for (const [key, stream] of streams) {
       if (!stream) {
         continue;
       }
       try {
-        data[key] = stringToUTF8String(stream.getString());
+        data.set(key, stringToUTF8String(stream.getString()));
       } catch {
         warn("XFA - Invalid utf-8 string.");
         return null;
@@ -1878,12 +1880,15 @@ class PDFDocument {
       name = name === "" ? partName : `${name}.${partName}`;
     } else {
       let obj = field;
+      // The `Parent` chain can be cyclic, hence the local `RefSet`.
+      const walkedRefs = new RefSet();
       while (true) {
         obj = obj.getRaw("Parent") || parentRef;
         if (obj instanceof Ref) {
-          if (visitedRefs.has(obj)) {
+          if (visitedRefs.has(obj) || walkedRefs.has(obj)) {
             break;
           }
+          walkedRefs.put(obj);
           obj = await xref.fetchAsync(obj);
         }
         if (!(obj instanceof Dict)) {
@@ -1986,7 +1991,7 @@ class PDFDocument {
         await Promise.all(allPromises);
 
         return {
-          allFields: objectSize(allFields) > 0 ? allFields : null,
+          allFields: Object.keys(allFields).length ? allFields : null,
           orphanFields,
         };
       });
@@ -1994,7 +1999,7 @@ class PDFDocument {
     return shadow(this, "fieldObjects", promise);
   }
 
-  #collectSignatureFields(fields, out, visitedRefs) {
+  async #collectSignatureFields(fields, out, visitedRefs) {
     if (!Array.isArray(fields)) {
       return;
     }
@@ -2005,37 +2010,79 @@ class PDFDocument {
         }
         visitedRefs.put(fieldRef);
       }
-      const field = this.xref.fetchIfRef(fieldRef);
+      const field = await this.xref.fetchIfRefAsync(fieldRef);
       if (!(field instanceof Dict)) {
         continue;
       }
+      if (isName(await field.getAsync("FT"), "Sig")) {
+        const sigDict = await field.getAsync("V");
+        if (sigDict instanceof Dict) {
+          const parsed = await this.#parseSignatureDict(
+            field,
+            sigDict,
+            fieldRef
+          );
+          if (parsed) {
+            out.push(parsed);
+          }
+        }
+      }
       if (field.has("Kids")) {
-        this.#collectSignatureFields(field.get("Kids"), out, visitedRefs);
-        continue;
-      }
-      if (!isName(field.get("FT"), "Sig")) {
-        continue;
-      }
-      const sigDict = this.xref.fetchIfRef(field.get("V"));
-      if (!(sigDict instanceof Dict)) {
-        continue;
-      }
-      const parsed = this.#parseSignatureDict(field, sigDict, fieldRef);
-      if (parsed) {
-        out.push(parsed);
+        // A terminal field can have Widget annotations as children, so its
+        // own signature must be collected before walking the field tree.
+        await this.#collectSignatureFields(
+          await field.getAsync("Kids"),
+          out,
+          visitedRefs
+        );
       }
     }
   }
 
-  // The /ByteRange of a signature that covers the whole document usually
-  // ends a few bytes before the file's actual end — the trailer,
-  // `startxref` offset and `%%EOF` marker are conventionally left outside
-  // the signed range. 100 bytes covers the worst case (large
-  // `startxref` offsets, optional whitespace) without false positives.
-  static #WHOLE_DOCUMENT_TAIL_FUZZ = 100;
+  async #getByteRange(begin, end) {
+    try {
+      return this.stream.getByteRange(begin, end);
+    } catch (ex) {
+      if (!(ex instanceof MissingDataException)) {
+        throw ex;
+      }
+      await this.pdfManager.requestRange(begin, end);
+      return this.#getByteRange(begin, end);
+    }
+  }
 
-  #parseSignatureDict(field, sigDict, fieldRef) {
-    const byteRange = sigDict.get("ByteRange");
+  async #coversWholeDocument(signedEnd, modificationsAfterSignature) {
+    if (modificationsAfterSignature > 0) {
+      return false;
+    }
+
+    const fileLength = this.stream.end;
+    for (
+      let begin = signedEnd;
+      begin < fileLength;
+      begin += SIGNATURE_TAIL_CHUNK_SIZE
+    ) {
+      const end = Math.min(begin + SIGNATURE_TAIL_CHUNK_SIZE, fileLength);
+      const tail = await this.#getByteRange(begin, end);
+
+      for (const byte of tail) {
+        if (
+          byte !== 0x00 && // null
+          byte !== 0x09 && // horizontal tab
+          byte !== 0x0a && // line feed
+          byte !== 0x0c && // form feed
+          byte !== 0x0d && // carriage return
+          byte !== 0x20 // space
+        ) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  async #parseSignatureDict(field, sigDict, fieldRef) {
+    const byteRange = await sigDict.getAsync("ByteRange");
     if (
       !Array.isArray(byteRange) ||
       byteRange.length !== 4 ||
@@ -2043,31 +2090,13 @@ class PDFDocument {
     ) {
       return null;
     }
-    const contents = sigDict.get("Contents");
-    if (typeof contents !== "string" || contents.length === 0) {
-      return null;
-    }
-
-    const filterName = sigDict.get("Filter");
-    const filter = filterName instanceof Name ? filterName.name : null;
-    const subFilterName = sigDict.get("SubFilter");
-    const subFilter = subFilterName instanceof Name ? subFilterName.name : null;
-
-    let signatureType = null;
-    if (subFilter === "adbe.pkcs7.detached") {
-      signatureType = 0;
-    } else if (subFilter === "adbe.pkcs7.sha1") {
-      signatureType = 1;
-    }
-
     // Slice the two ByteRange byte spans out of the underlying PDF stream.
     // ByteRange = [a, b, c, d] means signed bytes are [a..a+b] and [c..c+d];
     // the gap covers the /Contents hex blob itself.
     const [a, b, c, d] = byteRange;
-    const stream = this.stream;
     // `/ByteRange` offsets are absolute, so compare against `stream.end`
     // (raw buffer end), not `stream.length` (post-`moveStart` payload).
-    const fileLength = stream.end || 0;
+    const fileLength = this.stream.end || 0;
     // Reject signatures whose /ByteRange is structurally implausible: it
     // must start at the file head, define a non-empty first span, leave
     // room for the /Contents blob between the two spans, and fit within
@@ -2076,38 +2105,52 @@ class PDFDocument {
     if (
       a !== 0 ||
       b <= 0 ||
-      d < 0 ||
       a + b > c ||
       c + d > fileLength ||
       fileLength === 0
     ) {
       return null;
     }
-    const data = [stream.getByteRange(a, a + b), stream.getByteRange(c, c + d)];
 
-    const pkcs7 = stringToBytes(contents);
+    const contents = await sigDict.getAsync("Contents");
+    if (typeof contents !== "string" || contents.length === 0) {
+      return null;
+    }
 
-    const t = field.get("T");
-    const fieldName = typeof t === "string" ? stringToPDFString(t) : "";
-    const name = sigDict.get("Name");
-    const reason = sigDict.get("Reason");
-    const location = sigDict.get("Location");
-    const contactInfo = sigDict.get("ContactInfo");
-    const m = sigDict.get("M");
+    const [
+      filterName,
+      subFilterName,
+      t,
+      name,
+      reason,
+      location,
+      contactInfo,
+      m,
+    ] = await Promise.all([
+      sigDict.getAsync("Filter"),
+      sigDict.getAsync("SubFilter"),
+      field.getAsync("T"),
+      sigDict.getAsync("Name"),
+      sigDict.getAsync("Reason"),
+      sigDict.getAsync("Location"),
+      sigDict.getAsync("ContactInfo"),
+      sigDict.getAsync("M"),
+    ]);
 
+    const filter = filterName instanceof Name ? filterName.name : null,
+      subFilter = subFilterName instanceof Name ? subFilterName.name : null;
+
+    let signatureType = null;
+    if (subFilter === "adbe.pkcs7.detached") {
+      signatureType = 0;
+    } else if (subFilter === "adbe.pkcs7.sha1") {
+      signatureType = 1;
+    }
     const refKey = fieldRef instanceof Ref ? fieldRef.toString() : "inline";
-    const id = `${refKey}:${a}-${b}-${c}-${d}`;
-
-    // A signature "covers the whole document" iff the gap between the
-    // last signed byte and EOF is no more than the conventional
-    // trailer-slack window. Compare on the gap (not on the absolute
-    // lastSignedByte) so a tiny file with a tiny ByteRange isn't
-    // mis-flagged as full-coverage.
-    const tailGap = fileLength - (c + d);
 
     return {
-      id,
-      fieldName,
+      id: `${refKey}:${a}-${b}-${c}-${d}`,
+      fieldName: typeof t === "string" ? stringToPDFString(t) : "",
       signerName: typeof name === "string" ? stringToPDFString(name) : null,
       reason: typeof reason === "string" ? stringToPDFString(reason) : null,
       location:
@@ -2119,12 +2162,9 @@ class PDFDocument {
       subFilter,
       signatureType,
       byteRange,
-      pkcs7,
-      data,
+      pkcs7: stringToBytes(contents),
       revisionIndex: 0,
       parentId: null,
-      coversWholeDocument:
-        tailGap >= 0 && tailGap <= PDFDocument.#WHOLE_DOCUMENT_TAIL_FUZZ,
     };
   }
 
@@ -2142,7 +2182,19 @@ class PDFDocument {
         const fields = annotationGlobals.acroForm.get("Fields");
 
         const collected = [];
-        this.#collectSignatureFields(fields, collected, new RefSet());
+        await this.#collectSignatureFields(fields, collected, new RefSet());
+
+        await Promise.all(
+          collected.map(async signature => {
+            const signedEnd = signature.byteRange[2] + signature.byteRange[3];
+            signature.modificationsAfterSignature =
+              this.xref.countUpdatesAfter(signedEnd);
+            signature.coversWholeDocument = await this.#coversWholeDocument(
+              signedEnd,
+              signature.modificationsAfterSignature
+            );
+          })
+        );
 
         // Group sub-signatures by ByteRange containment: outer revision is
         // the largest covering signature (largest c + d). Sort descending,
@@ -2166,14 +2218,14 @@ class PDFDocument {
             }
           }
         }
-        // Split bytes (`data`, `pkcs7`) out of the metadata so the array
-        // we ship to the main thread stays small. The viewer fetches the
-        // bytes on demand via `getSignatureData(id)`, one signature at a
-        // time, only when verification is about to run.
+        // Keep the PKCS#7 blob and byte-range information worker-side so the
+        // metadata array stays small. The viewer fetches the signed bytes on
+        // demand via `getSignatureData(id)`, one signature at a time, only
+        // when verification is about to run.
         const signatureData = new Map();
         const metadata = collected.map(sig => {
-          const { data, pkcs7, ...rest } = sig;
-          signatureData.set(sig.id, { data, pkcs7 });
+          const { pkcs7, ...rest } = sig;
+          signatureData.set(sig.id, { byteRange: sig.byteRange, pkcs7 });
           return rest;
         });
         this.#signatureData = signatureData;
@@ -2186,7 +2238,17 @@ class PDFDocument {
   async getSignatureData(id) {
     // Ensure parsing is finished and `#signatureData` is populated.
     await this.signatures;
-    return this.#signatureData?.get(id) ?? null;
+    const signature = this.#signatureData?.get(id);
+    if (!signature) {
+      return null;
+    }
+    const { byteRange, pkcs7 } = signature;
+    const [a, b, c, d] = byteRange;
+    const data = await Promise.all([
+      this.#getByteRange(a, a + b),
+      this.#getByteRange(c, c + d),
+    ]);
+    return { data, pkcs7 };
   }
 
   get hasJSActions() {

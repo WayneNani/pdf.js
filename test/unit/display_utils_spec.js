@@ -181,7 +181,7 @@ describe("display_utils", function () {
         new Blob([typedArray], { type: "application/pdf" })
       );
       // Sanity check to ensure that a "blob:" URL was returned.
-      expect(blobUrl.startsWith("blob:")).toEqual(true);
+      expect(blobUrl.startsWith("blob:")).toBeTrue();
 
       expect(getPdfFilenameFromUrl(blobUrl + "?file.pdf")).toEqual("file.pdf");
     });
@@ -217,25 +217,25 @@ describe("display_utils", function () {
 
   describe("isValidFetchUrl", function () {
     it("handles invalid Fetch URLs", function () {
-      expect(isValidFetchUrl(null)).toEqual(false);
-      expect(isValidFetchUrl(100)).toEqual(false);
-      expect(isValidFetchUrl("foo")).toEqual(false);
-      expect(isValidFetchUrl("/foo", 100)).toEqual(false);
+      expect(isValidFetchUrl(null)).toBeFalse();
+      expect(isValidFetchUrl(100)).toBeFalse();
+      expect(isValidFetchUrl("foo")).toBeFalse();
+      expect(isValidFetchUrl("/foo", 100)).toBeFalse();
     });
 
     it("handles relative Fetch URLs", function () {
-      expect(isValidFetchUrl("/foo", "file://www.example.com")).toEqual(false);
-      expect(isValidFetchUrl("/foo", "http://www.example.com")).toEqual(true);
+      expect(isValidFetchUrl("/foo", "file://www.example.com")).toBeFalse();
+      expect(isValidFetchUrl("/foo", "http://www.example.com")).toBeTrue();
     });
 
     it("handles unsupported Fetch protocols", function () {
-      expect(isValidFetchUrl("file://www.example.com")).toEqual(false);
-      expect(isValidFetchUrl("ftp://www.example.com")).toEqual(false);
+      expect(isValidFetchUrl("file://www.example.com")).toBeFalse();
+      expect(isValidFetchUrl("ftp://www.example.com")).toBeFalse();
     });
 
     it("handles supported Fetch protocols", function () {
-      expect(isValidFetchUrl("http://www.example.com")).toEqual(true);
-      expect(isValidFetchUrl("https://www.example.com")).toEqual(true);
+      expect(isValidFetchUrl("http://www.example.com")).toBeTrue();
+      expect(isValidFetchUrl("https://www.example.com")).toBeTrue();
     });
   });
 
@@ -439,6 +439,83 @@ describe("display_utils", function () {
             '<span style="font-weight: bold;">Hello</span> world!</p></div>'
         )
       );
+    });
+
+    it("should only keep the supported rich text elements", function () {
+      if (isNodeJS) {
+        pending("DOM is not supported in Node.js.");
+      }
+      const container = document.createElement("div");
+      const xfaHtml = {
+        name: "div",
+        children: [
+          { name: "p", value: "kept" },
+          {
+            name: "section",
+            children: [{ name: "span", value: "removed" }],
+          },
+        ],
+      };
+      renderRichText(
+        { html: xfaHtml, dir: "ltr", className: "foo" },
+        container
+      );
+
+      expect(container.querySelector("p")).not.toBeNull();
+      expect(container.querySelector("section")).toBeNull();
+      expect(container.querySelector("span")).toBeNull();
+      expect(container.textContent).toEqual("kept");
+    });
+
+    it("should only keep the supported rich text attributes", function () {
+      if (isNodeJS) {
+        pending("DOM is not supported in Node.js.");
+      }
+      const container = document.createElement("div");
+      const xfaHtml = {
+        name: "div",
+        children: [
+          {
+            name: "p",
+            attributes: { class: ["bar"], dir: "rtl", title: "unsupported" },
+            value: "text",
+          },
+        ],
+      };
+      renderRichText(
+        { html: xfaHtml, dir: "ltr", className: "foo" },
+        container
+      );
+      const p = container.querySelector("p");
+
+      expect(p.getAttribute("class")).toEqual("bar");
+      expect(p.getAttribute("dir")).toEqual("rtl");
+      expect(p.hasAttribute("title")).toEqual(false);
+    });
+
+    it("should only apply the supported rich text style properties", function () {
+      if (isNodeJS) {
+        pending("DOM is not supported in Node.js.");
+      }
+      const container = document.createElement("div");
+      const xfaHtml = {
+        name: "div",
+        children: [
+          {
+            name: "span",
+            attributes: { style: { color: "green", width: "100px" } },
+            value: "text",
+          },
+        ],
+      };
+      renderRichText(
+        { html: xfaHtml, dir: "ltr", className: "foo" },
+        container
+      );
+      const span = container.querySelector("span");
+
+      expect(span.style.color).toEqual("green");
+      expect(span.style.width).toEqual("");
     });
   });
 });

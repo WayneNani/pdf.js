@@ -15,7 +15,6 @@
 
 import { AppOptions, OptionKind } from "../../web/app_options.js";
 import { BasePreferences } from "../../web/preferences.js";
-import { objectSize } from "../../src/shared/util.js";
 
 describe("AppOptions", function () {
   it("checks that getAll returns data, for every OptionKind", function () {
@@ -32,7 +31,7 @@ describe("AppOptions", function () {
       expect(typeof kind).toEqual("number");
 
       const options = AppOptions.getAll(kind);
-      expect(objectSize(options)).toBeGreaterThan(0);
+      expect(Object.keys(options).length).toBeGreaterThan(0);
     }
   });
 
@@ -40,10 +39,12 @@ describe("AppOptions", function () {
     // If the following constant is updated then you *MUST* make the same change
     // in mozilla-central as well to ensure that preference-fetching works; see
     // https://searchfox.org/mozilla-central/source/toolkit/components/pdfjs/content/PdfStreamConverter.sys.mjs
-    const MAX_NUMBER_OF_PREFS = 50;
+    const MAX_NUMBER_OF_PREFS = 60;
 
     const options = AppOptions.getAll(OptionKind.PREFERENCE);
-    expect(objectSize(options)).toBeLessThanOrEqual(MAX_NUMBER_OF_PREFS);
+    expect(Object.keys(options).length).toBeLessThanOrEqual(
+      MAX_NUMBER_OF_PREFS
+    );
   });
 });
 

@@ -278,7 +278,7 @@ describe("FreeText Editor", () => {
               sel => !!document.querySelector(sel),
               editorSelector
             );
-            expect(hasEditor).withContext(`In ${browserName}`).toEqual(true);
+            expect(hasEditor).withContext(`In ${browserName}`).toBeTrue();
           }
 
           await waitForStorageEntries(page, 3);
@@ -290,7 +290,7 @@ describe("FreeText Editor", () => {
               sel => !!document.querySelector(sel),
               getEditorSelector(n)
             );
-            expect(hasEditor).withContext(`In ${browserName}`).toEqual(false);
+            expect(hasEditor).withContext(`In ${browserName}`).toBeFalse();
           }
         })
       );
@@ -652,7 +652,7 @@ describe("FreeText Editor", () => {
           const oldAriaOwns = await page.$eval(`span[pdfjs="true"]`, el =>
             el.getAttribute("aria-owns")
           );
-          expect(oldAriaOwns).withContext(`In ${browserName}`).toEqual(null);
+          expect(oldAriaOwns).withContext(`In ${browserName}`).toBeNull();
 
           const rect = await getRect(page, `span[pdfjs="true"]`);
           await createFreeTextEditor({
@@ -667,7 +667,7 @@ describe("FreeText Editor", () => {
           );
           expect(newAriaOwns.endsWith("_0-editor"))
             .withContext(`In ${browserName}`)
-            .toEqual(true);
+            .toBeTrue();
         })
       );
     });
@@ -1389,7 +1389,7 @@ describe("FreeText Editor", () => {
           let height = bbox[3] - bbox[1];
           expect(width < height)
             .withContext(`In ${browserName}`)
-            .toEqual(true);
+            .toBeTrue();
 
           await page.evaluate(() => {
             window.PDFViewerApplication.rotatePages(270);
@@ -1439,7 +1439,7 @@ describe("FreeText Editor", () => {
           height = bbox[3] - bbox[1];
           expect(width < height)
             .withContext(`In ${browserName}`)
-            .toEqual(true);
+            .toBeTrue();
         })
       );
     });
@@ -1624,7 +1624,7 @@ describe("FreeText Editor", () => {
               .withContext(
                 `In ${browserName}, first pix coords in editor: ${editorFirstPix} and in annotation: ${annotationFirstPix}`
               )
-              .toEqual(true);
+              .toBeTrue();
           }
         })
       );
@@ -1792,7 +1792,7 @@ describe("FreeText Editor", () => {
               .withContext(
                 `In ${browserName}, first pix coords in editor: ${editorFirstPix} and in annotation: ${annotationFirstPix}`
               )
-              .toEqual(true);
+              .toBeTrue();
           }
         })
       );

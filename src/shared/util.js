@@ -616,10 +616,6 @@ function stringToBytes(str) {
   return bytes;
 }
 
-function objectSize(obj) {
-  return Object.keys(obj).length;
-}
-
 class FeatureTest {
   static get isLittleEndian() {
     const buffer8 = new Uint8Array(4);
@@ -1160,6 +1156,14 @@ if (
   };
 }
 
+// TODO: Remove this once `Iterator.prototype.join` is generally available.
+if (typeof Iterator.prototype.join !== "function") {
+  // eslint-disable-next-line no-extend-native
+  Iterator.prototype.join = function (separator) {
+    return [...this].join(separator);
+  };
+}
+
 export {
   _isValidExplicitDest,
   AbortException,
@@ -1202,7 +1206,6 @@ export {
   makeSet,
   MeshFigureType,
   normalizeUnicode,
-  objectSize,
   OPS,
   PageActionEventType,
   PasswordException,

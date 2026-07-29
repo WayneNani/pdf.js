@@ -36,6 +36,7 @@ import {
   PsUnaryNode,
 } from "../../src/core/postscript/ast.js";
 import { buildPostScriptJsFunction } from "../../src/core/postscript/js_evaluator.js";
+import { FormatError } from "../../src/shared/util.js";
 
 // Precision argument for toBeCloseTo() in trigonometric tests.
 const TRIGONOMETRY_EPS = 1e-10;
@@ -171,7 +172,10 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
 
     it("throws on standalone if without preceding block", function () {
       const parser = new Parser(new Lexer("{ 1 if }"));
-      expect(() => parser.parse()).toThrow();
+      expect(() => parser.parse()).toThrowError(
+        FormatError,
+        "PostScript function: unexpected 'if' operator."
+      );
     });
 
     it("ignores content after closing brace (warns, does not throw)", function () {
@@ -180,11 +184,17 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     });
 
     it("throws when first token is not a left brace", function () {
-      expect(() => parsePostScriptFunction("add }")).toThrow();
+      expect(() => parsePostScriptFunction("add }")).toThrowError(
+        FormatError,
+        "PostScript function: expected token id 1, got 5."
+      );
     });
 
     it("throws when a procedure block is not followed by if or ifelse", function () {
-      expect(() => parsePostScriptFunction("{ { 1 } add }")).toThrow();
+      expect(() => parsePostScriptFunction("{ { 1 } add }")).toThrowError(
+        FormatError,
+        "PostScript function: a procedure block must be followed by 'if' or '{…} ifelse'."
+      );
     });
   });
 
@@ -1049,6 +1059,26 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
       );
       expect(r2).toBeCloseTo(0.5, 9);
     });
+
+    it("compiles functions with 9+ outputs (signed i32.const store offset)", async function () {
+      // Regression: each output's f64.store address is emitted as
+      // `i32.const (i * 8)`. i32.const immediates are *signed* LEB128, so the
+      // 9th output offset (64) must not be written with the unsigned encoder,
+      // which yields the byte 0x40 that Wasm decodes as -64 → out-of-bounds
+      // store → runtime trap. compileAndRun throws if the Wasm function traps.
+      for (const nOut of [9, 10, 16, 20]) {
+        const range = [];
+        for (let i = 0; i < nOut; i++) {
+          range.push(0, 1000);
+        }
+        const src = "{" + " dup".repeat(nOut - 1) + " }";
+        const out = compileAndRun(src, [0, 1], range, [0.5]);
+        expect(out.length).toBe(nOut);
+        for (const value of out) {
+          expect(value).toBeCloseTo(0.5, 10);
+        }
+      }
+    });
   });
 
   // PSStackToTree
@@ -1159,9 +1189,9 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("true and false become PsConstNode", function () {
       const out = toTree("{ true false }", 0);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(true);
+      expect(out[0].value).toBeTrue();
       expect(out[1]).toBeInstanceOf(PsConstNode);
-      expect(out[1].value).toBe(false);
+      expect(out[1].value).toBeFalse();
     });
 
     it("copy duplicates the top n nodes", function () {
@@ -1386,7 +1416,7 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("x and false → false", function () {
       const out = toTree("{ false and }", 1);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(false);
+      expect(out[0].value).toBeFalse();
     });
 
     it("x or false → x", function () {
@@ -1397,7 +1427,7 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("x or true → true", function () {
       const out = toTree("{ true or }", 1);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(true);
+      expect(out[0].value).toBeTrue();
     });
 
     // not(comparison) → negated comparison
@@ -1478,7 +1508,7 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("x eq x → true (reflexive eq)", function () {
       const out = toTree("{ dup eq }", 1);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(true);
+      expect(out[0].value).toBeTrue();
     });
 
     it("x and x → x (reflexive and)", function () {
@@ -1490,7 +1520,7 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("x ne x → false (reflexive ne)", function () {
       const out = toTree("{ dup ne }", 1);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(false);
+      expect(out[0].value).toBeFalse();
     });
 
     it("_nodesEqual handles structurally-equal unary nodes", function () {
@@ -1585,7 +1615,7 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("false and x → false (second=false and)", function () {
       const out = toTree("{ false exch and }", 1);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(false);
+      expect(out[0].value).toBeFalse();
     });
 
     it("false or x → x (second=false or)", function () {
@@ -1596,7 +1626,7 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     it("true or x → true (second=true or)", function () {
       const out = toTree("{ true exch or }", 1);
       expect(out[0]).toBeInstanceOf(PsConstNode);
-      expect(out[0].value).toBe(true);
+      expect(out[0].value).toBeTrue();
     });
 
     it("no simplification when second operand is a non-special constant", function () {
@@ -1782,18 +1812,18 @@ describe("PostScript Type 4 lexer, parser, and Wasm compiler", function () {
     });
 
     it("constant-folds comparison operators", function () {
-      expect(toTree("{ 1 1 eq }", 0)[0].value).toBe(true);
-      expect(toTree("{ 1 2 ne }", 0)[0].value).toBe(true);
-      expect(toTree("{ 2 1 gt }", 0)[0].value).toBe(true); // a=2 > b=1
-      expect(toTree("{ 1 1 ge }", 0)[0].value).toBe(true);
-      expect(toTree("{ 1 2 lt }", 0)[0].value).toBe(true); // a=1 < b=2
-      expect(toTree("{ 1 2 le }", 0)[0].value).toBe(true);
+      expect(toTree("{ 1 1 eq }", 0)[0].value).toBeTrue();
+      expect(toTree("{ 1 2 ne }", 0)[0].value).toBeTrue();
+      expect(toTree("{ 2 1 gt }", 0)[0].value).toBeTrue(); // a=2 > b=1
+      expect(toTree("{ 1 1 ge }", 0)[0].value).toBeTrue();
+      expect(toTree("{ 1 2 lt }", 0)[0].value).toBeTrue(); // a=1 < b=2
+      expect(toTree("{ 1 2 le }", 0)[0].value).toBeTrue();
     });
 
     it("constant-folds boolean and, or, xor and bitshift", function () {
-      expect(toTree("{ true false and }", 0)[0].value).toBe(false);
-      expect(toTree("{ false true or }", 0)[0].value).toBe(true);
-      expect(toTree("{ true false xor }", 0)[0].value).toBe(true);
+      expect(toTree("{ true false and }", 0)[0].value).toBeFalse();
+      expect(toTree("{ false true or }", 0)[0].value).toBeTrue();
+      expect(toTree("{ true false xor }", 0)[0].value).toBeTrue();
       expect(toTree("{ 4 2 bitshift }", 0)[0].value).toBe(16); // 4 << 2
     });
 
