@@ -3096,7 +3096,8 @@ describe("Highlight Editor", () => {
               "switchannotationeditorparams",
               {
                 source: null,
-                type: window.pdfjsLib.AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+                type: window.pdfjsLib.AnnotationEditorParamsType
+                  .HIGHLIGHT_COLOR,
                 value: "#00AB00",
               }
             );
