@@ -364,6 +364,39 @@
         }
       }
 
+      .colorSwatches {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding-inline: 4px;
+
+        .colorSwatch {
+          width: 20px;
+          height: 20px;
+          padding: 0;
+          border: none;
+          background: none;
+          cursor: pointer;
+          border-radius: 100%;
+
+          .swatch {
+            display: block;
+            width: 16px;
+            height: 16px;
+            border: 1px solid light-dark(#cfcfd8, #52525e);
+            border-radius: 100%;
+            box-sizing: border-box;
+            forced-color-adjust: none;
+          }
+
+          &:hover .swatch {
+            outline: 2px solid light-dark(#0250bb, #80ebff);
+            outline-offset: 2px;
+            border: none;
+          }
+        }
+      }
+
       > * {
         height: var(--editor-toolbar-height);
       }

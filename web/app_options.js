@@ -388,7 +388,9 @@ const defaultOptions = new Map([
       // in Firefox release, but it has to be temporary.
       // TODO: remove it when unnecessary.
       /** @type {boolean} */
-      value: typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING"),
+      value:
+        typeof PDFJSDev === "undefined" ||
+        PDFJSDev.test("TESTING || GENERIC"),
       kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
     },
   ],
