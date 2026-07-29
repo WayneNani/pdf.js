@@ -137,7 +137,52 @@ class UnderlineEditor extends AnnotationEditor {
     return { numberOfColors: data.get("color").size };
   }
 
+  /**
+   * `Range.getClientRects()` often yields one rect per text node/span, so a
+   * single visual line can produce several nearly-overlapping boxes. Drawing
+   * (and serializing) one underline per box stacks parallel strokes. Merge
+   * boxes that share a line into one quad spanning the full line width.
+   * @param {Array<{x: number, y: number, width: number, height: number}>} boxes
+   * @returns {Array<{x: number, y: number, width: number, height: number}>}
+   */
+  static #mergeBoxesByLine(boxes) {
+    if (!boxes || boxes.length <= 1) {
+      return boxes;
+    }
+    const sorted = boxes.slice().sort((a, b) => a.y - b.y || a.x - b.x);
+    const merged = [];
+    for (const box of sorted) {
+      const last = merged.at(-1);
+      if (last) {
+        const top = Math.max(last.y, box.y);
+        const bottom = Math.min(last.y + last.height, box.y + box.height);
+        const overlap = bottom - top;
+        // Same line if vertical ranges overlap by ≥ half the shorter box.
+        if (overlap > 0.5 * Math.min(last.height, box.height)) {
+          const x1 = Math.min(last.x, box.x);
+          const y1 = Math.min(last.y, box.y);
+          const x2 = Math.max(last.x + last.width, box.x + box.width);
+          const y2 = Math.max(last.y + last.height, box.y + box.height);
+          last.x = x1;
+          last.y = y1;
+          last.width = x2 - x1;
+          last.height = y2 - y1;
+          continue;
+        }
+      }
+      merged.push({
+        x: box.x,
+        y: box.y,
+        width: box.width,
+        height: box.height,
+      });
+    }
+    return merged;
+  }
+
   #createOutlines() {
+    this.#boxes = UnderlineEditor.#mergeBoxesByLine(this.#boxes);
+
     const outliner = new HighlightOutliner(
       this.#boxes,
       /* borderWidth = */ 0.001
