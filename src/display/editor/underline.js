@@ -166,12 +166,18 @@ class UnderlineEditor extends AnnotationEditor {
   }
 
   /**
-   * Build an SVG path for the underline stroke in page coordinates.
+   * Build an SVG path for the underline stroke in box-local coordinates.
+   * The draw layer SVG uses viewBox "0 0 1 1" mapped to the outline bbox,
+   * so page-space box coords must be converted the same way
+   * HighlightOutliner does.
    * @returns {string}
    */
   #underlinePath() {
+    const [bx, by, bw, bh] = this.#underlineOutlines.box;
+    const toLocal = (px, py) => [(px - bx) / bw, (py - by) / bh];
     const parts = [];
     for (const { x, y, width, height } of this.#boxes) {
+      // Above the box bottom so the stroke sits under the glyphs.
       const yLine = y + height - Math.min(0.008, height * 0.15);
       if (this.#style === "wavy") {
         const amp = Math.min(0.006, height * 0.12);
@@ -179,19 +185,25 @@ class UnderlineEditor extends AnnotationEditor {
           0.008,
           width / Math.max(8, Math.round(width / 0.012))
         );
-        parts.push(`M ${x} ${yLine}`);
+        const [sx, sy] = toLocal(x, yLine);
+        parts.push(`M ${sx} ${sy}`);
         let cx = x;
         let up = true;
         while (cx < x + width - step / 2) {
           cx += step;
-          parts.push(
-            `L ${Math.min(cx, x + width)} ${yLine + (up ? -amp : amp)}`
+          const [lx, ly] = toLocal(
+            Math.min(cx, x + width),
+            yLine + (up ? -amp : amp)
           );
+          parts.push(`L ${lx} ${ly}`);
           up = !up;
         }
-        parts.push(`L ${x + width} ${yLine}`);
+        const [ex, ey] = toLocal(x + width, yLine);
+        parts.push(`L ${ex} ${ey}`);
       } else {
-        parts.push(`M ${x} ${yLine} L ${x + width} ${yLine}`);
+        const [sx, sy] = toLocal(x, yLine);
+        const [ex, ey] = toLocal(x + width, yLine);
+        parts.push(`M ${sx} ${sy} L ${ex} ${ey}`);
       }
     }
     return parts.join(" ");
