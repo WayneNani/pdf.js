@@ -170,7 +170,7 @@ describe("core_utils", function () {
       for (const input of ["foo", -1, 0]) {
         expect(function () {
           toRomanNumerals(input);
-        }).toThrow(new Error("The number should be a positive integer."));
+        }).toThrowError("The number should be a positive integer.");
       }
     });
 
@@ -218,16 +218,16 @@ describe("core_utils", function () {
 
   describe("isWhiteSpace", function () {
     it("handles space characters", function () {
-      expect(isWhiteSpace(0x20)).toEqual(true);
-      expect(isWhiteSpace(0x09)).toEqual(true);
-      expect(isWhiteSpace(0x0d)).toEqual(true);
-      expect(isWhiteSpace(0x0a)).toEqual(true);
+      expect(isWhiteSpace(0x20)).toBeTrue();
+      expect(isWhiteSpace(0x09)).toBeTrue();
+      expect(isWhiteSpace(0x0d)).toBeTrue();
+      expect(isWhiteSpace(0x0a)).toBeTrue();
     });
 
     it("handles non-space characters", function () {
-      expect(isWhiteSpace(0x0b)).toEqual(false);
-      expect(isWhiteSpace(null)).toEqual(false);
-      expect(isWhiteSpace(undefined)).toEqual(false);
+      expect(isWhiteSpace(0x0b)).toBeFalse();
+      expect(isWhiteSpace(null)).toBeFalse();
+      expect(isWhiteSpace(undefined)).toBeFalse();
     });
   });
 
@@ -333,49 +333,49 @@ describe("core_utils", function () {
         italicAngle: 0,
       };
 
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = `"blah blah \\" blah blah"`;
-      expect(validateCSSFont(cssFontInfo)).toEqual(true);
+      expect(validateCSSFont(cssFontInfo)).toBeTrue();
 
       cssFontInfo.fontFamily = `'blah blah ' blah blah'`;
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = `'blah blah \\' blah blah'`;
-      expect(validateCSSFont(cssFontInfo)).toEqual(true);
+      expect(validateCSSFont(cssFontInfo)).toBeTrue();
 
       cssFontInfo.fontFamily = `"blah blah `;
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = `blah blah"`;
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = `'blah blah `;
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = `blah blah'`;
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = "blah blah blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(true);
+      expect(validateCSSFont(cssFontInfo)).toBeTrue();
 
       cssFontInfo.fontFamily = "blah 0blah blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = "blah blah -0blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = "blah blah --blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
 
       cssFontInfo.fontFamily = "blah blah -blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(true);
+      expect(validateCSSFont(cssFontInfo)).toBeTrue();
 
       cssFontInfo.fontFamily = "blah fdqAJqjHJK23kl23__--Kj blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(true);
+      expect(validateCSSFont(cssFontInfo)).toBeTrue();
 
       cssFontInfo.fontFamily = "blah fdqAJqjH$JK23kl23__--Kj blah";
-      expect(validateCSSFont(cssFontInfo)).toEqual(false);
+      expect(validateCSSFont(cssFontInfo)).toBeFalse();
     });
 
     it("Check font weight", function () {
@@ -575,8 +575,8 @@ describe("core_utils", function () {
     });
 
     it("throws an exception for invalid rotation values", function () {
-      expect(() => getRotationMatrix(42, 10, 20)).toThrow(
-        new Error("Invalid rotation")
+      expect(() => getRotationMatrix(42, 10, 20)).toThrowError(
+        "Invalid rotation"
       );
     });
   });

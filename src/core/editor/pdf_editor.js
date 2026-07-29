@@ -104,6 +104,10 @@ class XRefWrapper {
     return this._getNewRef();
   }
 
+  countUpdatesAfter(offset) {
+    return null;
+  }
+
   fetchIfRef(obj) {
     return obj instanceof Ref ? this.fetch(obj) : obj;
   }
@@ -709,12 +713,21 @@ class PDFEditor {
       }
       for (let attr of attributes) {
         attr = this.xrefWrapper.fetchIfRef(attr);
+        if (!(attr instanceof Dict)) {
+          // An attribute array may interleave dictionaries and revision
+          // numbers (ISO 32000-2, 14.7.6.3).
+          continue;
+        }
         if (isName(attr.get("O"), "Table") && attr.has("Headers")) {
           const headers = this.xrefWrapper.fetchIfRef(attr.getRaw("Headers"));
           if (Array.isArray(headers)) {
             for (let i = 0, ii = headers.length; i < ii; i++) {
+              const header = this.xrefWrapper.fetchIfRef(headers[i]);
+              if (typeof header !== "string") {
+                continue;
+              }
               const newId = dedupIDs.get(
-                stringToPDFString(headers[i], /* keepEscapeSequence = */ false)
+                stringToPDFString(header, /* keepEscapeSequence = */ false)
               );
               if (newId) {
                 headers[i] = newId;
@@ -1206,10 +1219,10 @@ class PDFEditor {
           if (!isName(annotationDict.get("Subtype"), "Link")) {
             if (isName(annotationDict.get("Subtype"), "Widget")) {
               hasSignatureAnnotations ||= isName(
-                annotationDict.get("FT"),
+                getInheritableProperty({ dict: annotationDict, key: "FT" }),
                 "Sig"
               );
-              const parentRef = annotationDict.get("Parent") || null;
+              const parentRef = annotationDict.getRaw("Parent") || null;
               // We remove the parent to avoid visiting it when cloning the
               // annotation.
               // It'll be fixed later in #mergeAcroForms when merging the
@@ -1615,7 +1628,7 @@ class PDFEditor {
       }
       const { destinations, pagesMap } = documentData;
       const newDestinations = (documentData.destinations = new Map());
-      for (const [key, dest] of Object.entries(destinations)) {
+      for (const [key, dest] of destinations) {
         const pageRef = dest[0];
         const pageData = pageRef instanceof Ref && pagesMap.get(pageRef);
         if (!pageData) {
@@ -2109,14 +2122,14 @@ class PDFEditor {
    * If the document has some fields but no Fields entry in the AcroForm, we
    * need to fix that by creating a Fields entry with the oldest parent field
    * for each field.
-   * @param {Map<Ref, Ref>} fieldToParent
+   * @param {RefSetCache} fieldToParent
    * @param {XRef} xref
    * @returns {Array<Ref>}
    */
   #fixFields(fieldToParent, xref) {
     const newFields = [];
     const processed = new RefSet();
-    for (const [fieldRef, parentRef] of fieldToParent) {
+    for (const [fieldRef, parentRef] of fieldToParent.items()) {
       if (!parentRef) {
         newFields.push(fieldRef);
         continue;
@@ -2230,11 +2243,7 @@ class PDFEditor {
       if (data.parentRef) {
         newKid.set("Parent", data.parentRef);
       }
-      if (
-        acroFormDefaultAppearance &&
-        isName(newKid.get("FT"), "Tx") &&
-        !newKid.has("DA")
-      ) {
+      if (acroFormDefaultAppearance && !newKid.has("DA")) {
         // Fix the DA later since we need to have all the fields tree.
         daToFix.push(newKid);
       }
@@ -2252,6 +2261,10 @@ class PDFEditor {
     }
 
     for (const field of daToFix) {
+      const fieldType = getInheritableProperty({ dict: field, key: "FT" });
+      if (!isName(fieldType, "Tx")) {
+        continue;
+      }
       const da = getInheritableProperty({ dict: field, key: "DA" });
       if (!da) {
         // No DA in a parent field, we can set the default one.
@@ -2259,47 +2272,51 @@ class PDFEditor {
       }
     }
     const resourcesValuesCache = new Map();
+    const fixAppearanceResources = async stream => {
+      let resources = stream.dict.getRaw("Resources");
+      resources &&= this.xrefWrapper.fetchIfRef(resources);
+      if (!(resources instanceof Dict)) {
+        const newResourcesRef = await resourcesValuesCache.getOrInsertComputed(
+          acroFormDefaultResources,
+          () => this.#cloneObject(acroFormDefaultResources, xref)
+        );
+        stream.dict.set("Resources", newResourcesRef);
+        return;
+      }
+      for (const [
+        resKey,
+        resValue,
+      ] of acroFormDefaultResources.getRawEntries()) {
+        if (resources.has(resKey)) {
+          continue;
+        }
+        let newResValue = resValue;
+        if (resValue instanceof Ref) {
+          newResValue = await this.#collectDependencies(resValue, true, xref);
+        } else if (
+          resValue instanceof Dict ||
+          resValue instanceof BaseStream ||
+          Array.isArray(resValue)
+        ) {
+          newResValue = await resourcesValuesCache.getOrInsertComputed(
+            resValue,
+            () => this.#cloneObject(resValue, xref)
+          );
+        }
+        resources.set(resKey, newResValue);
+      }
+    };
+
     for (const field of drToFix) {
       const ap = field.get("AP");
       for (const [, value] of ap) {
-        if (!(value instanceof BaseStream)) {
-          continue;
-        }
-        let resources = value.dict.getRaw("Resources");
-        if (!resources) {
-          const newResourcesRef =
-            await resourcesValuesCache.getOrInsertComputed(
-              acroFormDefaultResources,
-              () => this.#cloneObject(acroFormDefaultResources, xref)
-            );
-          value.dict.set("Resources", newResourcesRef);
-          continue;
-        }
-
-        resources = xref.fetchIfRef(resources);
-        for (const [
-          resKey,
-          resValue,
-        ] of acroFormDefaultResources.getRawEntries()) {
-          if (!resources.has(resKey)) {
-            let newResValue = resValue;
-            if (resValue instanceof Ref) {
-              newResValue = await this.#collectDependencies(
-                resValue,
-                true,
-                xref
-              );
-            } else if (
-              resValue instanceof Dict ||
-              resValue instanceof BaseStream ||
-              Array.isArray(resValue)
-            ) {
-              newResValue = await resourcesValuesCache.getOrInsertComputed(
-                resValue,
-                () => this.#cloneObject(resValue, xref)
-              );
+        if (value instanceof BaseStream) {
+          await fixAppearanceResources(value);
+        } else if (value instanceof Dict) {
+          for (const [, stream] of value) {
+            if (stream instanceof BaseStream) {
+              await fixAppearanceResources(stream);
             }
-            resources.set(resKey, newResValue);
           }
         }
       }
@@ -2886,7 +2903,7 @@ class PDFEditor {
       acroForm.set("SigFlags", this.acroFormSigFlags);
     }
     acroForm.setIfArray("CO", this.acroFormCalculationOrder);
-    acroForm.setIfDict("DR", this.acroFormDefaultResources);
+    acroForm.setIfDefined("DR", this.acroFormDefaultResources);
     if (this.acroFormDefaultAppearance) {
       acroForm.set("DA", this.acroFormDefaultAppearance);
     }

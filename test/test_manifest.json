@@ -1,5 +1,12 @@
 [
   {
+    "id": "postscript-type4-many-outputs",
+    "file": "pdfs/postscript_type4_many_outputs.pdf",
+    "md5": "90c1ebd35acc6c7d01f4fdb0ae0bef82",
+    "rounds": 1,
+    "type": "eq"
+  },
+  {
     "id": "bug1755201",
     "file": "pdfs/bug1755201.pdf",
     "md5": "cece14097812d8a1f69e86a51e4a3804",
@@ -35,6 +42,14 @@
     "id": "issue21458",
     "file": "pdfs/issue21458.pdf",
     "md5": "875754beca276ab63568e06fd49e8375",
+    "rounds": 1,
+    "link": true,
+    "type": "other"
+  },
+  {
+    "id": "issue21582",
+    "file": "pdfs/issue21582.pdf",
+    "md5": "bcc5a2ae3a588f360edbf94c3dd476a8",
     "rounds": 1,
     "link": true,
     "type": "other"
@@ -14471,5 +14486,35 @@
     "rounds": 1,
     "type": "eq",
     "password": "pässwört"
+  },
+  {
+    "id": "saslprep-r6",
+    "file": "pdfs/saslprep-r6.pdf",
+    "md5": "2aee2434f164a00a52b98f29b6f9758c",
+    "rounds": 1,
+    "type": "eq",
+    "password": "S\u00AASL\u00ADprep"
+  },
+  {
+    "id": "jpx_smaskindata",
+    "file": "pdfs/jpx_smaskindata.pdf",
+    "md5": "f7a8628b14ca176700247f106c16812a",
+    "rounds": 1,
+    "type": "eq"
+  },
+  {
+    "id": "nonisolated_blend_smask",
+    "file": "pdfs/nonisolated_blend_smask.pdf",
+    "md5": "4b87611416be34894eeb19c158fafbad",
+    "rounds": 1,
+    "type": "eq"
+  },
+  {
+    "id": "function_based_shading_cmyk",
+    "file": "pdfs/function_based_shading_cmyk.pdf",
+    "md5": "6c2b4d131a007a6f40ac7a892ad5f2a1",
+    "rounds": 1,
+    "lastPage": 1,
+    "type": "eq"
   }
 ]

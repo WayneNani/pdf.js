@@ -19,7 +19,6 @@ import {
   DocumentActionEventType,
   FormatError,
   info,
-  objectSize,
   PermissionFlag,
   shadow,
   stringToUTF8String,
@@ -763,15 +762,17 @@ class Catalog {
   }
 
   get destinations() {
-    const rawDests = this.#readDests(),
-      dests = Object.create(null);
-    for (const obj of rawDests) {
+    const dests = new Map();
+
+    for (const obj of this.#readDests()) {
       if (obj instanceof NameTree) {
         for (const [key, value] of obj.getAll()) {
           const dest = fetchDest(value);
           if (dest) {
-            dests[stringToPDFString(key, /* keepEscapeSequence = */ true)] =
-              dest;
+            dests.set(
+              stringToPDFString(key, /* keepEscapeSequence = */ true),
+              dest
+            );
           }
         }
       } else if (obj instanceof Dict) {
@@ -779,8 +780,10 @@ class Catalog {
           const dest = fetchDest(value);
           if (dest) {
             // Always let the NameTree take precedence.
-            dests[stringToPDFString(key, /* keepEscapeSequence = */ true)] ||=
-              dest;
+            dests.getOrInsert(
+              stringToPDFString(key, /* keepEscapeSequence = */ true),
+              dest
+            );
           }
         }
       }
@@ -791,11 +794,10 @@ class Catalog {
   getDestination(id) {
     // Avoid extra lookup/parsing when all destinations are already available.
     if (Object.hasOwn(this, "destinations")) {
-      return this.destinations[id] ?? null;
+      return this.destinations.get(id) ?? null;
     }
 
-    const rawDests = this.#readDests();
-    for (const obj of rawDests) {
+    for (const obj of this.#readDests()) {
       if (obj instanceof NameTree || obj instanceof Dict) {
         const dest = fetchDest(obj.get(id));
         if (dest) {
@@ -807,13 +809,7 @@ class Catalog {
     // Always fallback to checking all destinations, in order to support:
     //  - PDF documents with out-of-order NameTrees (fixes issue 10272).
     //  - Destination keys that use PDFDocEncoding (fixes issue 19835).
-    if (rawDests.length) {
-      const dest = this.destinations[id];
-      if (dest) {
-        return dest;
-      }
-    }
-    return null;
+    return this.destinations.get(id) ?? null;
   }
 
   #readDests() {
@@ -1079,17 +1075,18 @@ class Catalog {
           break;
         case "PrintPageRange":
           // The number of elements must be even.
-          if (Array.isArray(value) && value.length % 2 === 0) {
-            const isValid = value.every(
+          if (
+            Array.isArray(value) &&
+            value.length % 2 === 0 &&
+            value.every(
               (page, i, arr) =>
                 Number.isInteger(page) &&
                 page > 0 &&
                 (i === 0 || page >= arr[i - 1]) &&
                 page <= this.numPages
-            );
-            if (isValid) {
-              prefValue = value;
-            }
+            )
+          ) {
+            prefValue = value;
           }
           break;
         case "NumCopies":
@@ -1106,15 +1103,14 @@ class Catalog {
         warn(`Bad value, for key "${key}", in ViewerPreferences: ${value}.`);
         continue;
       }
-      prefs ??= Object.create(null);
-      prefs[key] = prefValue;
+      (prefs ??= new Map()).set(key, prefValue);
     }
     return shadow(this, "viewerPreferences", prefs);
   }
 
   get openAction() {
     const obj = this.#catDict.get("OpenAction");
-    const openAction = Object.create(null);
+    const openAction = new Map();
 
     if (obj instanceof Dict) {
       // Convert the OpenAction dictionary into a format that works with
@@ -1126,18 +1122,14 @@ class Catalog {
       Catalog.parseDestDictionary({ destDict, resultObj });
 
       if (Array.isArray(resultObj.dest)) {
-        openAction.dest = resultObj.dest;
+        openAction.set("dest", resultObj.dest);
       } else if (resultObj.action) {
-        openAction.action = resultObj.action;
+        openAction.set("action", resultObj.action);
       }
     } else if (isValidExplicitDest(obj)) {
-      openAction.dest = obj;
+      openAction.set("dest", obj);
     }
-    return shadow(
-      this,
-      "openAction",
-      objectSize(openAction) > 0 ? openAction : null
-    );
+    return shadow(this, "openAction", openAction.size ? openAction : null);
   }
 
   /**
@@ -1249,13 +1241,9 @@ class Catalog {
     let javaScript = null;
 
     function appendIfJavaScriptDict(name, jsDict) {
-      if (!(jsDict instanceof Dict)) {
+      if (!(jsDict instanceof Dict) || !isName(jsDict.get("S"), "JavaScript")) {
         return;
       }
-      if (!isName(jsDict.get("S"), "JavaScript")) {
-        return;
-      }
-
       let js = jsDict.get("JS");
       if (js instanceof BaseStream) {
         js = js.getString();
@@ -1268,7 +1256,7 @@ class Catalog {
       );
       // Skip empty entries, similar to the `_collectJS` function.
       if (js) {
-        (javaScript ||= new Map()).set(name, js);
+        (javaScript ??= new Map()).set(name, js);
       }
     }
 
@@ -1299,14 +1287,10 @@ class Catalog {
     );
 
     if (javaScript) {
-      actions ||= Object.create(null);
+      actions ??= Object.create(null);
 
       for (const [key, val] of javaScript) {
-        if (key in actions) {
-          actions[key].push(val);
-        } else {
-          actions[key] = [val];
-        }
+        (actions[key] ??= []).push(val);
       }
     }
     return shadow(this, "jsActions", actions);
@@ -1606,6 +1590,9 @@ class Catalog {
     const xref = this.xref;
     let total = 0,
       ref = pageRef;
+    // Prevent circular references in the /Pages tree.
+    const visited = new RefSet();
+    visited.put(pageRef);
 
     while (true) {
       const node = await xref.fetchAsync(ref);
@@ -1625,6 +1612,12 @@ class Catalog {
         throw new FormatError("Node must be a dictionary.");
       }
       const parentRef = node.getRaw("Parent");
+      if (parentRef instanceof Ref) {
+        if (visited.has(parentRef)) {
+          throw new FormatError("Pages tree contains circular reference.");
+        }
+        visited.put(parentRef);
+      }
 
       const parent = await node.getAsync("Parent");
       if (!parent) {
@@ -1737,9 +1730,19 @@ class Catalog {
     // reached (e.g. integer MCIDs or MCR/OBJR dicts without further K).
     if (!pageRef) {
       const queue = [seDict];
+      // Prevent circular references in the structure tree.
+      const visited = new RefSet();
+      visited.put(seRef);
       while (queue.length > 0 && !pageRef) {
         const node = queue.shift();
-        const kids = node.get("K");
+        let kids = node.getRaw("K");
+        if (kids instanceof Ref) {
+          if (visited.has(kids)) {
+            continue;
+          }
+          visited.put(kids);
+          kids = xref.fetch(kids);
+        }
         let kidsArr;
         if (Array.isArray(kids)) {
           kidsArr = kids;
@@ -1749,6 +1752,12 @@ class Catalog {
           continue;
         }
         for (const kid of kidsArr) {
+          if (kid instanceof Ref) {
+            if (visited.has(kid)) {
+              continue;
+            }
+            visited.put(kid);
+          }
           const kidObj = xref.fetchIfRef(kid);
           if (!(kidObj instanceof Dict)) {
             continue; // integer MCID – leaf node, no Pg here

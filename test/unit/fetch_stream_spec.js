@@ -63,8 +63,8 @@ describe("fetch_stream", function () {
     await read();
 
     expect(len).toEqual(pdfLength);
-    expect(isStreamingSupported).toEqual(true);
-    expect(isRangeSupported).toEqual(false);
+    expect(isStreamingSupported).toBeTrue();
+    expect(isRangeSupported).toBeFalse();
   });
 
   it("read ranges with streaming", async function () {
@@ -112,9 +112,9 @@ describe("fetch_stream", function () {
       read(rangeReader2, result2),
     ]);
 
-    expect(isStreamingSupported).toEqual(true);
-    expect(isRangeSupported).toEqual(true);
-    expect(fullReaderCancelled).toEqual(true);
+    expect(isStreamingSupported).toBeTrue();
+    expect(isRangeSupported).toBeTrue();
+    expect(fullReaderCancelled).toBeTrue();
     expect(result1.value).toEqual(rangeSize);
     expect(result2.value).toEqual(tailSize);
   });

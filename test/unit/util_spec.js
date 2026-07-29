@@ -44,7 +44,7 @@ describe("util", function () {
     it("handles non-array arguments", function () {
       expect(function () {
         bytesToString(null);
-      }).toThrow(new Error("Invalid argument for bytesToString"));
+      }).toThrowError("Invalid argument for bytesToString");
     });
 
     it("handles array arguments with a length not exceeding the maximum", function () {
@@ -72,7 +72,7 @@ describe("util", function () {
     it("handles non-string arguments", function () {
       expect(function () {
         stringToBytes(null);
-      }).toThrow(new Error("Invalid argument for stringToBytes"));
+      }).toThrowError("Invalid argument for stringToBytes");
     });
 
     it("handles string arguments", function () {
@@ -83,13 +83,13 @@ describe("util", function () {
 
   describe("createValidAbsoluteUrl", function () {
     it("handles invalid URLs", function () {
-      expect(createValidAbsoluteUrl(undefined, undefined)).toEqual(null);
-      expect(createValidAbsoluteUrl(null, null)).toEqual(null);
-      expect(createValidAbsoluteUrl("/foo", "/bar")).toEqual(null);
+      expect(createValidAbsoluteUrl(undefined, undefined)).toBeNull();
+      expect(createValidAbsoluteUrl(null, null)).toBeNull();
+      expect(createValidAbsoluteUrl("/foo", "/bar")).toBeNull();
     });
 
     it("handles URLs that do not use an allowed protocol", function () {
-      expect(createValidAbsoluteUrl("magnet:?foo", null)).toEqual(null);
+      expect(createValidAbsoluteUrl("magnet:?foo", null)).toBeNull();
     });
 
     it("correctly creates a valid URL for allowed protocols", function () {
@@ -129,7 +129,7 @@ describe("util", function () {
       expect(createValidAbsoluteUrl("tel:+0123456789", null)).toEqual(
         new URL("tel:+0123456789")
       );
-      expect(createValidAbsoluteUrl("/foo", "tel:0123456789")).toEqual(null);
+      expect(createValidAbsoluteUrl("/foo", "tel:0123456789")).toBeNull();
     });
   });
 

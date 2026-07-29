@@ -156,6 +156,10 @@ class XRefMock {
     this._newTemporaryRefNum = null;
   }
 
+  countUpdatesAfter(offset) {
+    return null;
+  }
+
   fetch(ref) {
     return this._map[ref.toString()];
   }
@@ -165,14 +169,33 @@ class XRefMock {
   }
 
   fetchIfRef(obj) {
-    if (obj instanceof Ref) {
-      return this.fetch(obj);
-    }
-    return obj;
+    return obj instanceof Ref ? this.fetch(obj) : obj;
   }
 
   async fetchIfRefAsync(obj) {
     return this.fetchIfRef(obj);
+  }
+}
+
+/**
+ * `XRefMock` variant that limits the number of fetches, such that tests
+ * exercising cycle detection fail rather than hang when a guard is missing.
+ */
+class BoundedXRefMock extends XRefMock {
+  #limit;
+
+  fetchCount = 0;
+
+  constructor(array, limit = 100) {
+    super(array);
+    this.#limit = limit;
+  }
+
+  fetch(ref) {
+    if (++this.fetchCount > this.#limit) {
+      throw new Error(`BoundedXRefMock: more than ${this.#limit} fetches.`);
+    }
+    return super.fetch(ref);
   }
 }
 
@@ -284,6 +307,7 @@ class TestPdfsServer {
 }
 
 export {
+  BoundedXRefMock,
   buildGetDocumentParams,
   CMAP_URL,
   createIdFactory,

@@ -51,7 +51,7 @@ describe("Annotation highlight", () => {
             highlightSelector,
             popupSelector
           );
-          expect(areSiblings).withContext(`In ${browserName}`).toEqual(true);
+          expect(areSiblings).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -63,7 +63,7 @@ describe("Annotation highlight", () => {
             getAnnotationSelector("21R"),
             el => el.hidden
           );
-          expect(hidden).withContext(`In ${browserName}`).toEqual(true);
+          expect(hidden).withContext(`In ${browserName}`).toBeTrue();
           await page.hover(getAnnotationSelector("19R"));
           await page.waitForSelector(getAnnotationSelector("21R"), {
             visible: true,
@@ -73,7 +73,7 @@ describe("Annotation highlight", () => {
             getAnnotationSelector("21R"),
             el => el.hidden
           );
-          expect(hidden).withContext(`In ${browserName}`).toEqual(false);
+          expect(hidden).withContext(`In ${browserName}`).toBeFalse();
         })
       );
     });
@@ -159,7 +159,7 @@ describe("Checkbox annotation", () => {
           await page.waitForFunction(
             `document.querySelector('${selector} input').checked`
           );
-          expect(true).withContext(`In ${browserName}`).toEqual(true);
+          expect(true).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -343,13 +343,13 @@ describe("Annotation and storage", () => {
               getSelector(checkId),
               el => el.checked
             );
-            expect(checked).toEqual(true);
+            expect(checked).toBeTrue();
 
             checked = await page.$eval(getSelector(radio1Id), el => el.checked);
-            expect(checked).toEqual(false);
+            expect(checked).toBeFalse();
 
             checked = await page.$eval(getSelector(radio2Id), el => el.checked);
-            expect(checked).toEqual(false);
+            expect(checked).toBeFalse();
           }
 
           // Change data on page 5 and check that other pages changed.
@@ -384,13 +384,13 @@ describe("Annotation and storage", () => {
               getSelector(checkId),
               el => el.checked
             );
-            expect(checked).toEqual(false);
+            expect(checked).toBeFalse();
 
             checked = await page.$eval(getSelector(radio1Id), el => el.checked);
-            expect(checked).toEqual(false);
+            expect(checked).toBeFalse();
 
             checked = await page.$eval(getSelector(radio2Id), el => el.checked);
-            expect(checked).toEqual(false);
+            expect(checked).toBeFalse();
           }
         })
       );
@@ -442,20 +442,20 @@ describe("ResetForm action", () => {
               getSelector(`${id}R`),
               el => el.checked
             );
-            expect(checked).withContext(`In ${browserName}`).toEqual(false);
+            expect(checked).withContext(`In ${browserName}`).toBeFalse();
           }
 
           let selected = await page.$eval(
             `${getSelector("78R")} [value="a"]`,
             el => el.selected
           );
-          expect(selected).withContext(`In ${browserName}`).toEqual(true);
+          expect(selected).withContext(`In ${browserName}`).toBeTrue();
 
           selected = await page.$eval(
             `${getSelector("81R")} [value="d"]`,
             el => el.selected
           );
-          expect(selected).withContext(`In ${browserName}`).toEqual(true);
+          expect(selected).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -495,7 +495,7 @@ describe("ResetForm action", () => {
             );
             expect(checked)
               .withContext(`In ${browserName + id}`)
-              .toEqual(false);
+              .toBeFalse();
           }
 
           ids = [71, 75];
@@ -504,20 +504,20 @@ describe("ResetForm action", () => {
               getSelector(`${id}R`),
               el => el.checked
             );
-            expect(checked).withContext(`In ${browserName}`).toEqual(true);
+            expect(checked).withContext(`In ${browserName}`).toBeTrue();
           }
 
           let selected = await page.$eval(
             `${getSelector("78R")} [value="a"]`,
             el => el.selected
           );
-          expect(selected).withContext(`In ${browserName}`).toEqual(true);
+          expect(selected).withContext(`In ${browserName}`).toBeTrue();
 
           selected = await page.$eval(
             `${getSelector("81R")} [value="f"]`,
             el => el.selected
           );
-          expect(selected).withContext(`In ${browserName}`).toEqual(true);
+          expect(selected).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -636,7 +636,7 @@ describe("ResetForm action", () => {
           pages.map(async ([browserName, page]) => {
             const selector = getAnnotationSelector("21R");
             let hidden = await page.$eval(selector, el => el.hidden);
-            expect(hidden).withContext(`In ${browserName}`).toEqual(true);
+            expect(hidden).withContext(`In ${browserName}`).toBeTrue();
 
             await page.focus(getAnnotationSelector("20R"));
             await page.keyboard.press("Enter");
@@ -644,28 +644,28 @@ describe("ResetForm action", () => {
               `document.querySelector('${selector}').hidden !== true`
             );
             hidden = await page.$eval(selector, el => el.hidden);
-            expect(hidden).withContext(`In ${browserName}`).toEqual(false);
+            expect(hidden).withContext(`In ${browserName}`).toBeFalse();
 
             await page.keyboard.press("Enter");
             await page.waitForFunction(
               `document.querySelector('${selector}').hidden !== false`
             );
             hidden = await page.$eval(selector, el => el.hidden);
-            expect(hidden).withContext(`In ${browserName}`).toEqual(true);
+            expect(hidden).withContext(`In ${browserName}`).toBeTrue();
 
             await page.keyboard.press("Enter");
             await page.waitForFunction(
               `document.querySelector('${selector}').hidden !== true`
             );
             hidden = await page.$eval(selector, el => el.hidden);
-            expect(hidden).withContext(`In ${browserName}`).toEqual(false);
+            expect(hidden).withContext(`In ${browserName}`).toBeFalse();
 
             await page.keyboard.press("Escape");
             await page.waitForFunction(
               `document.querySelector('${selector}').hidden !== false`
             );
             hidden = await page.$eval(selector, el => el.hidden);
-            expect(hidden).withContext(`In ${browserName}`).toEqual(true);
+            expect(hidden).withContext(`In ${browserName}`).toBeTrue();
           })
         );
       });
@@ -999,7 +999,7 @@ describe("RichMedia annotation", () => {
           const hasSource = await page.$eval(videoSelector, el =>
             el.src.startsWith("blob:")
           );
-          expect(hasSource).withContext(`In ${browserName}`).toEqual(true);
+          expect(hasSource).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -1020,7 +1020,7 @@ describe("RichMedia annotation", () => {
           const hasSource = await page.$eval(audioSelector, el =>
             el.src.startsWith("blob:")
           );
-          expect(hasSource).withContext(`In ${browserName}`).toEqual(true);
+          expect(hasSource).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -1056,7 +1056,7 @@ describe("Screen annotation (rendition)", () => {
           const hasSource = await page.$eval(videoSelector, el =>
             el.src.startsWith("blob:")
           );
-          expect(hasSource).withContext(`In ${browserName}`).toEqual(true);
+          expect(hasSource).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -1075,7 +1075,7 @@ describe("Screen annotation (rendition)", () => {
           const hasSource = await page.$eval(audioSelector, el =>
             el.src.startsWith("blob:")
           );
-          expect(hasSource).withContext(`In ${browserName}`).toEqual(true);
+          expect(hasSource).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });
@@ -1111,7 +1111,7 @@ describe("Sound annotation", () => {
           const hasSource = await page.$eval(audioSelector, el =>
             el.src.startsWith("blob:")
           );
-          expect(hasSource).withContext(`In ${browserName}`).toEqual(true);
+          expect(hasSource).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });

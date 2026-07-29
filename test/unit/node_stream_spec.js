@@ -58,8 +58,8 @@ describe("node_stream", function () {
 
     await Promise.all([read(), promise]);
 
-    expect(isStreamingSupported).toEqual(false);
-    expect(isRangeSupported).toEqual(false);
+    expect(isStreamingSupported).toBeFalse();
+    expect(isRangeSupported).toBeFalse();
     expect(len).toEqual(pdfLength);
   });
 
@@ -113,9 +113,9 @@ describe("node_stream", function () {
 
     expect(result1.value).toEqual(rangeSize);
     expect(result2.value).toEqual(tailSize);
-    expect(isStreamingSupported).toEqual(false);
-    expect(isRangeSupported).toEqual(true);
-    expect(fullReaderCancelled).toEqual(true);
+    expect(isStreamingSupported).toBeFalse();
+    expect(isRangeSupported).toBeTrue();
+    expect(fullReaderCancelled).toBeTrue();
   });
 
   it("read filesystem pdf files (smaller than two range requests)", async function () {
@@ -150,8 +150,8 @@ describe("node_stream", function () {
 
     await Promise.all([read(), promise]);
 
-    expect(isStreamingSupported).toEqual(false);
-    expect(isRangeSupported).toEqual(false);
+    expect(isStreamingSupported).toBeFalse();
+    expect(isRangeSupported).toBeFalse();
     expect(len).toEqual(smallLength);
   });
 });
