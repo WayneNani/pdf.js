@@ -221,6 +221,9 @@ class ColorPicker {
         const color = input.value.toUpperCase();
         this.#uiManager.addRecentHighlightColor(color);
         this.updateColor(color);
+        if (!this.#isMainColorPicker) {
+          this.hideDropdown();
+        }
       },
       { signal }
     );
@@ -236,6 +239,11 @@ class ColorPicker {
       value: color,
     });
     this.updateColor(color);
+    // The main params-toolbar palette stays open; editor dropdowns close after
+    // a palette pick. Keep the free-form color input open while scrubbing.
+    if (!this.#isMainColorPicker && event.target !== this.#customColorInput) {
+      this.hideDropdown();
+    }
   }
 
   _colorSelectFromKeyboard(event) {

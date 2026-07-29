@@ -329,14 +329,28 @@ describe("Highlight Editor", () => {
         pages.map(async ([browserName, page]) => {
           await switchToHighlight(page);
           const sel = getEditorSelector(0);
+          const dropdownHidden = `${sel} .editToolbar button.colorPicker .dropdown.hidden`;
+          const dropdownVisible = `${sel} .editToolbar button.colorPicker .dropdown:not(.hidden)`;
+
+          async function openColorPicker() {
+            await page.waitForSelector(
+              `${sel} .editToolbar button.colorPicker`
+            );
+            await page.click(`${sel} .editToolbar button.colorPicker`);
+            await page.waitForSelector(dropdownVisible);
+            // Focus the selected swatch so arrow keys navigate options
+            // instead of closing the menu from the trigger button.
+            await page.focus(
+              `${sel} .editToolbar button[aria-selected="true"]`
+            );
+          }
 
           await highlightSpan(page, 1, "Abstract");
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlightOutline.selected`
           );
 
-          await page.waitForSelector(`${sel} .editToolbar button.colorPicker`);
-          await page.click(`${sel} .editToolbar button.colorPicker`);
+          await openColorPicker();
           await page.waitForSelector(
             `${sel} .editToolbar button[title = "Red"]`
           );
@@ -344,7 +358,9 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlight[fill = "#FF0000"]`
           );
+          await page.waitForSelector(dropdownHidden);
 
+          await openColorPicker();
           await page.keyboard.press("ArrowUp");
           await page.waitForSelector(
             `${sel} .editToolbar button[title = "Pink"]:focus`
@@ -353,7 +369,9 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlight[fill = "#FF00FF"]`
           );
+          await page.waitForSelector(dropdownHidden);
 
+          await openColorPicker();
           await page.keyboard.press("ArrowUp");
           await page.waitForSelector(
             `${sel} .editToolbar button[title = "Blue"]:focus`
@@ -362,7 +380,9 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlight[fill = "#0000FF"]`
           );
+          await page.waitForSelector(dropdownHidden);
 
+          await openColorPicker();
           await page.keyboard.press("ArrowLeft");
           await page.waitForSelector(
             `${sel} .editToolbar button[title = "Green"]:focus`
@@ -371,7 +391,9 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlight[fill = "#00FF00"]`
           );
+          await page.waitForSelector(dropdownHidden);
 
+          await openColorPicker();
           await page.keyboard.press("ArrowRight");
           await page.waitForSelector(
             `${sel} .editToolbar button[title = "Blue"]:focus`
@@ -380,7 +402,9 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlight[fill = "#0000FF"]`
           );
+          await page.waitForSelector(dropdownHidden);
 
+          await openColorPicker();
           await page.keyboard.press("ArrowDown");
           await page.waitForSelector(
             `${sel} .editToolbar button[title = "Pink"]:focus`
@@ -389,25 +413,19 @@ describe("Highlight Editor", () => {
           await page.waitForSelector(
             `.page[data-page-number = "1"] svg.highlight[fill = "#FF00FF"]`
           );
+          await page.waitForSelector(dropdownHidden);
 
+          await openColorPicker();
           for (let i = 0; i < 4; i++) {
             await page.keyboard.press("ArrowUp");
           }
-          await page.waitForSelector(
-            `${sel} .editToolbar button.colorPicker .dropdown.hidden`
-          );
+          await page.waitForSelector(dropdownHidden);
           await page.keyboard.press("ArrowDown");
-          await page.waitForSelector(
-            `${sel} .editToolbar button.colorPicker .dropdown:not(.hidden)`
-          );
+          await page.waitForSelector(dropdownVisible);
           await page.keyboard.press("ArrowUp");
-          await page.waitForSelector(
-            `${sel} .editToolbar button.colorPicker .dropdown.hidden`
-          );
+          await page.waitForSelector(dropdownHidden);
           await page.keyboard.press(" ");
-          await page.waitForSelector(
-            `${sel} .editToolbar button.colorPicker .dropdown:not(.hidden)`
-          );
+          await page.waitForSelector(dropdownVisible);
         })
       );
     });
