@@ -225,26 +225,28 @@ class UnderlineEditor extends AnnotationEditor {
       // Above the box bottom so the stroke sits under the glyphs.
       const yLine = y + height - Math.min(0.008, height * 0.15);
       if (this.#style === "wavy") {
-        const amp = Math.min(0.006, height * 0.12);
-        const step = Math.max(
-          0.008,
-          width / Math.max(8, Math.round(width / 0.012))
+        // Spellcheck-like sinusoidal curlies: quadratic arcs, lower
+        // amplitude and denser wavelength than the old sawtooth path.
+        const amp = Math.min(0.0028, height * 0.055);
+        const halfPeriod = Math.max(
+          0.004,
+          Math.min(0.007, height * 0.16)
         );
         const [sx, sy] = toLocal(x, yLine);
         parts.push(`M ${sx} ${sy}`);
         let cx = x;
         let up = true;
-        while (cx < x + width - step / 2) {
-          cx += step;
-          const [lx, ly] = toLocal(
-            Math.min(cx, x + width),
-            yLine + (up ? -amp : amp)
-          );
-          parts.push(`L ${lx} ${ly}`);
+        const endX = x + width;
+        while (cx < endX - 1e-6) {
+          const half = Math.min(halfPeriod, endX - cx);
+          const midX = cx + half / 2;
+          const nextX = cx + half;
+          const [cpx, cpy] = toLocal(midX, yLine + (up ? -amp : amp));
+          const [nx, ny] = toLocal(nextX, yLine);
+          parts.push(`Q ${cpx} ${cpy} ${nx} ${ny}`);
+          cx = nextX;
           up = !up;
         }
-        const [ex, ey] = toLocal(x + width, yLine);
-        parts.push(`L ${ex} ${ey}`);
       } else {
         const [sx, sy] = toLocal(x, yLine);
         const [ex, ey] = toLocal(x + width, yLine);
