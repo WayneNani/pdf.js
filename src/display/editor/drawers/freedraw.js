@@ -54,7 +54,7 @@ class FreeDrawOutliner {
 
   #startY;
 
-  static #MIN_DIST = 8;
+  static #MIN_DIST = 2;
 
   static #MIN_DIFF = 2;
 
