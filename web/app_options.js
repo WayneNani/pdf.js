@@ -389,8 +389,7 @@ const defaultOptions = new Map([
       // TODO: remove it when unnecessary.
       /** @type {boolean} */
       value:
-        typeof PDFJSDev === "undefined" ||
-        PDFJSDev.test("TESTING || GENERIC"),
+        typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING || GENERIC"),
       kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
     },
   ],

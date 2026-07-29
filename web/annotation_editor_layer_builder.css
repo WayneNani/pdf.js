@@ -1313,8 +1313,7 @@
       display: flex;
       justify-content: flex-start;
       align-items: center;
-      flex-direction: row;
-      flex-wrap: wrap;
+      flex-flow: row wrap;
       row-gap: 8px;
       height: auto;
 

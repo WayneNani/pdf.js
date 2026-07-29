@@ -13,8 +13,8 @@
  * limitations under the License.
  */
 
-import { AnnotationEditorParamsType } from "../../shared/util.js";
 import { noContextMenu, stopEvent } from "../display_utils.js";
+import { AnnotationEditorParamsType } from "../../shared/util.js";
 
 class EditorToolbar {
   #toolbar = null;
@@ -373,14 +373,11 @@ class FloatingToolbar {
         button.addEventListener(
           "click",
           () => {
-            this.#uiManager._eventBus.dispatch(
-              "switchannotationeditorparams",
-              {
-                source: this,
-                type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
-                value: color,
-              }
-            );
+            this.#uiManager._eventBus.dispatch("switchannotationeditorparams", {
+              source: this,
+              type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+              value: color,
+            });
             this.#uiManager.highlightSelection("floating_button");
           },
           { signal }
