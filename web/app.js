@@ -3388,16 +3388,40 @@ function onKeyDown(evt) {
         this.pdfCursorTools?.switchTool(CursorTool.SELECT);
         break;
       case 72: // 'h'
-        // With a text selection: highlight using the last used color.
-        // Otherwise: switch to the Hand tool (historical 'h' binding).
+        // Activate Highlight editor mode (last used color). With a text
+        // selection, also highlight immediately. Hand tool is toolbar-only.
         if (
           this.pdfViewer._layerProperties.annotationEditorUIManager?.highlightSelection(
             "keyboard"
           )
         ) {
           handled = true;
-        } else {
-          this.pdfCursorTools?.switchTool(CursorTool.HAND);
+        } else if (this.pdfViewer._layerProperties.annotationEditorUIManager) {
+          this.eventBus.dispatch("switchannotationeditormode", {
+            source: this,
+            mode: AnnotationEditorType.HIGHLIGHT,
+            isFromKeyboard: true,
+          });
+          handled = true;
+        }
+        break;
+
+      case 85: // 'u'
+        // Activate Underline editor mode (last used style/color). With a
+        // text selection, also underline immediately.
+        if (
+          this.pdfViewer._layerProperties.annotationEditorUIManager?.underlineSelection(
+            "keyboard"
+          )
+        ) {
+          handled = true;
+        } else if (this.pdfViewer._layerProperties.annotationEditorUIManager) {
+          this.eventBus.dispatch("switchannotationeditormode", {
+            source: this,
+            mode: AnnotationEditorType.UNDERLINE,
+            isFromKeyboard: true,
+          });
+          handled = true;
         }
         break;
 

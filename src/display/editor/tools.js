@@ -1506,10 +1506,17 @@ class AnnotationEditorUIManager {
     return true;
   }
 
+  /**
+   * Underline the current text selection using the last used underline
+   * color/style.
+   * @param {string} [methodOfCreation]
+   * @returns {boolean} True when an underlineable selection was found and
+   *   underlining was started.
+   */
   underlineSelection(methodOfCreation = "") {
     const selection = document.getSelection();
     if (!selection || selection.isCollapsed) {
-      return;
+      return false;
     }
     const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
     const text = selection.toString();
@@ -1517,7 +1524,7 @@ class AnnotationEditorUIManager {
     const textLayer = anchorElement.closest(".textLayer");
     const boxes = this.getSelectionBoxes(textLayer);
     if (!boxes) {
-      return;
+      return false;
     }
     selection.empty();
 
@@ -1541,9 +1548,10 @@ class AnnotationEditorUIManager {
     };
     if (isNoneMode) {
       this.switchToMode(AnnotationEditorType.UNDERLINE, callback);
-      return;
+      return true;
     }
     callback();
+    return true;
   }
 
   commentSelection(methodOfCreation = "") {
