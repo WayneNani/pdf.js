@@ -720,6 +720,60 @@ dialog :link {
   text-align: left;
 }
 
+#keyboardShortcutsDialog {
+  width: min(480px, 90vw);
+}
+
+#keyboardShortcutsDialog .mainContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 70vh;
+}
+
+#keyboardShortcutsDescription {
+  color: var(--main-color);
+  opacity: 0.75;
+  font-size: 13px;
+}
+
+#keyboardShortcutsList.shortcutsList {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 50vh;
+  padding-inline-end: 4px;
+}
+
+#keyboardShortcutsDialog .shortcutsRow {
+  display: grid;
+  grid-template-columns: 1fr minmax(7rem, auto) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+#keyboardShortcutsDialog .shortcutsAction {
+  font-size: 13px;
+}
+
+#keyboardShortcutsDialog .shortcutsBinding {
+  min-width: 7rem;
+  font-family: ui-monospace, monospace;
+}
+
+#keyboardShortcutsDialog .shortcutsBinding.capturing {
+  outline: 2px solid light-dark(#0060df, #0df);
+}
+
+#keyboardShortcutsDialog .shortcutsStatus {
+  font-size: 13px;
+}
+
+#keyboardShortcutsDialog .shortcutsStatus.error {
+  color: light-dark(#c50042, #ff9aa2);
+}
+
 #documentPropertiesDialog .row > * {
   min-width: 100px;
   text-align: start;
@@ -1106,6 +1160,10 @@ dialog :link {
     }
 
     #documentProperties::before {
+      mask-image: var(--secondaryToolbarButton-documentProperties-icon);
+    }
+
+    #keyboardShortcuts::before {
       mask-image: var(--secondaryToolbarButton-documentProperties-icon);
     }
   }

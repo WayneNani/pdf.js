@@ -75,6 +75,7 @@ async function initializePDFJS(callback) {
       "pdfjs-test/unit/font_substitutions_spec.js",
       "pdfjs-test/unit/fonts_spec.js",
       "pdfjs-test/unit/image_utils_spec.js",
+      "pdfjs-test/unit/keyboard_shortcuts_spec.js",
       "pdfjs-test/unit/message_handler_spec.js",
       "pdfjs-test/unit/metadata_spec.js",
       "pdfjs-test/unit/murmurhash3_spec.js",

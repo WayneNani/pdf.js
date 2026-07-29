@@ -29,6 +29,7 @@
     "font_substitutions_spec.js",
     "fonts_spec.js",
     "image_utils_spec.js",
+    "keyboard_shortcuts_spec.js",
     "message_handler_spec.js",
     "metadata_spec.js",
     "murmurhash3_spec.js",

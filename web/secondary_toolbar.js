@@ -52,6 +52,8 @@ import { PagesCountLimit } from "./pdf_viewer.js";
  *   hand tool.
  * @property {HTMLButtonElement} imageAltTextSettingsButton - Button for opening
  *   the image alt-text settings dialog.
+ * @property {HTMLButtonElement} keyboardShortcutsButton - Button for opening
+ *   the keyboard shortcuts settings dialog.
  * @property {HTMLButtonElement} documentPropertiesButton - Button for opening
  *   the document properties dialog.
  */
@@ -146,6 +148,11 @@ class SecondaryToolbar {
         close: true,
       },
       {
+        element: options.keyboardShortcutsButton,
+        eventName: "keyboardshortcuts",
+        close: true,
+      },
+      {
         element: options.documentPropertiesButton,
         eventName: "documentproperties",
         close: true,
@@ -219,6 +226,9 @@ class SecondaryToolbar {
 
     // All items within the secondary toolbar.
     for (const { element, eventName, close, eventDetails } of buttons) {
+      if (!element) {
+        continue;
+      }
       element.addEventListener("click", evt => {
         if (eventName !== null) {
           eventBus.dispatch(eventName, { source: this, ...eventDetails });

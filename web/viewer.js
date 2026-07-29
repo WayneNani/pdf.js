@@ -128,6 +128,7 @@ function getViewerConfiguration() {
       imageAltTextSettingsSeparator: document.getElementById(
         "imageAltTextSettingsSeparator"
       ),
+      keyboardShortcutsButton: document.getElementById("keyboardShortcuts"),
       documentPropertiesButton: document.getElementById("documentProperties"),
     },
     viewsManager: {
@@ -242,6 +243,13 @@ function getViewerConfiguration() {
         pageSize: document.getElementById("pageSizeField"),
         linearized: document.getElementById("linearizedField"),
       },
+    },
+    keyboardShortcutsDialog: {
+      dialog: document.getElementById("keyboardShortcutsDialog"),
+      list: document.getElementById("keyboardShortcutsList"),
+      status: document.getElementById("keyboardShortcutsStatus"),
+      resetButton: document.getElementById("keyboardShortcutsReset"),
+      closeButton: document.getElementById("keyboardShortcutsClose"),
     },
     altTextDialog: {
       dialog: document.getElementById("altTextDialog"),

@@ -32,6 +32,7 @@ const DEFAULT_INTEGRATION_SPECS = [
   "freetext_editor_spec.mjs",
   "highlight_editor_spec.mjs",
   "ink_editor_spec.mjs",
+  "keyboard_shortcuts_spec.mjs",
   "presentation_mode_spec.mjs",
   "reorganize_pages_spec.mjs",
   "scripting_spec.mjs",

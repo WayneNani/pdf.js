@@ -104,6 +104,32 @@ pdfjs-spread-even-button =
     .title = Join page spreads starting with even-numbered pages
 pdfjs-spread-even-button-label = Even Spreads
 
+## Keyboard shortcuts dialog
+
+pdfjs-shortcuts-button =
+    .title = Keyboard Shortcuts…
+pdfjs-shortcuts-button-label = Keyboard Shortcuts…
+pdfjs-shortcuts-dialog-label = Keyboard Shortcuts
+pdfjs-shortcuts-dialog-description = Customize shortcuts for annotation tools, colors, and underline styles. Changes are saved automatically.
+pdfjs-shortcuts-press-key = Press a key…
+pdfjs-shortcuts-unassigned = Not set
+pdfjs-shortcuts-clear-button = Clear
+pdfjs-shortcuts-reset-button = Reset defaults
+pdfjs-shortcuts-close-button = Close
+pdfjs-shortcuts-collision = That shortcut is already used by “{ $action }”.
+pdfjs-shortcuts-reserved = That key is reserved for document navigation.
+pdfjs-shortcuts-invalid = Invalid shortcut.
+pdfjs-shortcuts-action-highlight = Highlight tool
+pdfjs-shortcuts-action-underline = Underline tool
+pdfjs-shortcuts-action-select = Select tool
+pdfjs-shortcuts-action-rotate-cw = Rotate clockwise
+# Variables:
+#   $color (String) - highlight color name
+pdfjs-shortcuts-action-highlight-color = Highlight color: { $color }
+# Variables:
+#   $style (String) - underline style name
+pdfjs-shortcuts-action-underline-style = Underline style: { $style }
+
 ## Document properties dialog
 
 pdfjs-document-properties-button =

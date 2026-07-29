@@ -39,6 +39,7 @@ import {
   TextLayerMode,
 } from "./ui_utils.js";
 import {
+  AnnotationEditorParamsType,
   AnnotationEditorType,
   build,
   FeatureTest,
@@ -62,6 +63,12 @@ import { AppOptions, OptionKind } from "./app_options.js";
 import { EventBus, FirefoxEventBus } from "./event_utils.js";
 import { ExternalServices, initCom, MLManager } from "web-external_services";
 import {
+  getActionMeta,
+  matchShortcut,
+  parseShortcutsPreference,
+  resolveHighlightColor,
+} from "./keyboard_shortcuts.js";
+import {
   ImageAltTextSettings,
   NewAltTextManager,
 } from "web-new_alt_text_manager";
@@ -73,6 +80,7 @@ import { CommentManager } from "./comment_manager.js";
 import { DownloadManager } from "web-download_manager";
 import { EditorUndoBar } from "./editor_undo_bar.js";
 import { internalOpt } from "./internal_evt.js";
+import { KeyboardShortcutsDialog } from "./keyboard_shortcuts_dialog.js";
 import { OverlayManager } from "./overlay_manager.js";
 import { PasswordPrompt } from "./password_prompt.js";
 import { PDFAttachmentViewer } from "web-pdf_attachment_viewer";
@@ -129,6 +137,8 @@ const PDFViewerApplication = {
   pdfPresentationMode: null,
   /** @type {PDFDocumentProperties} */
   pdfDocumentProperties: null,
+  /** @type {KeyboardShortcutsDialog} */
+  keyboardShortcutsDialog: null,
   /** @type {PDFLinkService} */
   pdfLinkService: null,
   /** @type {PdfTextExtractor|null} */
@@ -384,6 +394,7 @@ const PDFViewerApplication = {
         enableSplitMerge: x => x === "true",
         enableUpdatedAddImage: x => x === "true",
         highlightEditorColors: x => x,
+        keyboardShortcuts: x => x,
         imagesRightClickMinSize: x => parseInt(x, 10),
         maxCanvasPixels: x => parseInt(x, 10),
         spreadModeOnLoad: x => parseInt(x, 10),
@@ -746,6 +757,16 @@ const PDFViewerApplication = {
         l10n,
         /* fileNameLookup = */ () => this._docFilename,
         /* titleLookup = */ () => this._docTitle
+      );
+    }
+
+    if (appConfig.keyboardShortcutsDialog) {
+      this.keyboardShortcutsDialog = new KeyboardShortcutsDialog(
+        appConfig.keyboardShortcutsDialog,
+        overlayManager,
+        eventBus,
+        this.preferences,
+        l10n
       );
     }
 
@@ -2340,6 +2361,11 @@ const PDFViewerApplication = {
       () => pdfDocumentProperties?.open(),
       opts
     );
+    eventBus.on(
+      "keyboardshortcuts",
+      () => this.keyboardShortcutsDialog?.open(),
+      opts
+    );
     eventBus.on("findfromurlhash", onFindFromUrlHash.bind(this), opts);
     eventBus.on(
       "updatefindmatchescount",
@@ -3384,55 +3410,24 @@ function onKeyDown(evt) {
         }
         break;
 
-      case 83: // 's'
-        this.pdfCursorTools?.switchTool(CursorTool.SELECT);
-        break;
-      case 72: // 'h'
-        // Activate Highlight editor mode (last used color). With a text
-        // selection, also highlight immediately. Hand tool is toolbar-only.
-        if (
-          this.pdfViewer._layerProperties.annotationEditorUIManager?.highlightSelection(
-            "keyboard"
-          )
-        ) {
-          handled = true;
-        } else if (this.pdfViewer._layerProperties.annotationEditorUIManager) {
-          this.eventBus.dispatch("switchannotationeditormode", {
-            source: this,
-            mode: AnnotationEditorType.HIGHLIGHT,
-            isFromKeyboard: true,
-          });
-          handled = true;
-        }
-        break;
-
-      case 85: // 'u'
-        // Activate Underline editor mode (last used style/color). With a
-        // text selection, also underline immediately.
-        if (
-          this.pdfViewer._layerProperties.annotationEditorUIManager?.underlineSelection(
-            "keyboard"
-          )
-        ) {
-          handled = true;
-        } else if (this.pdfViewer._layerProperties.annotationEditorUIManager) {
-          this.eventBus.dispatch("switchannotationeditormode", {
-            source: this,
-            mode: AnnotationEditorType.UNDERLINE,
-            isFromKeyboard: true,
-          });
-          handled = true;
-        }
-        break;
-
-      case 82: // 'r'
-        this.rotatePages(90);
-        break;
-
       case 115: // F4
         this.viewsManager?.toggle();
         break;
+
+      default: {
+        const shortcuts = parseShortcutsPreference(
+          AppOptions.get("keyboardShortcuts")
+        );
+        const actionId = matchShortcut(shortcuts, cmd, evt);
+        if (actionId && handleConfigurableShortcut.call(this, actionId)) {
+          handled = true;
+        }
+        break;
+      }
     }
+
+    // Note: tool shortcuts (h/u/s/r and user-configured color/style bindings)
+    // are handled above via `handleConfigurableShortcut`.
 
     if (
       turnPage !== 0 &&
@@ -3447,8 +3442,19 @@ function onKeyDown(evt) {
     }
   }
 
-  // shift-key
-  if (cmd === 4) {
+  // shift-key (and other modifier combos for configurable shortcuts)
+  if (cmd !== 0 && !handled) {
+    const shortcuts = parseShortcutsPreference(
+      AppOptions.get("keyboardShortcuts")
+    );
+    const actionId = matchShortcut(shortcuts, cmd, evt);
+    if (actionId && handleConfigurableShortcut.call(this, actionId)) {
+      handled = true;
+    }
+  }
+
+  // shift-key navigation
+  if (cmd === 4 && !handled) {
     switch (evt.keyCode) {
       case 32: // spacebar
         if (
@@ -3498,6 +3504,107 @@ function onKeyDown(evt) {
   if (handled) {
     evt.preventDefault();
   }
+}
+
+/**
+ * Handle a user-configurable shortcut action.
+ * @param {string} actionId
+ * @returns {boolean} whether the action was handled
+ */
+function handleConfigurableShortcut(actionId) {
+  const meta = getActionMeta(actionId);
+  if (!meta) {
+    return false;
+  }
+  const uiManager = this.pdfViewer?._layerProperties?.annotationEditorUIManager;
+
+  switch (meta.kind) {
+    case "tool":
+      switch (actionId) {
+        case "select":
+          this.pdfCursorTools?.switchTool(CursorTool.SELECT);
+          return true;
+        case "rotateCw":
+          this.rotatePages(90);
+          return true;
+        case "highlight":
+          if (uiManager?.highlightSelection("keyboard")) {
+            return true;
+          }
+          if (uiManager) {
+            this.eventBus.dispatch("switchannotationeditormode", {
+              source: this,
+              mode: AnnotationEditorType.HIGHLIGHT,
+              isFromKeyboard: true,
+            });
+            return true;
+          }
+          return false;
+        case "underline":
+          if (uiManager?.underlineSelection("keyboard")) {
+            return true;
+          }
+          if (uiManager) {
+            this.eventBus.dispatch("switchannotationeditormode", {
+              source: this,
+              mode: AnnotationEditorType.UNDERLINE,
+              isFromKeyboard: true,
+            });
+            return true;
+          }
+          return false;
+      }
+      return false;
+
+    case "color": {
+      const color = resolveHighlightColor(
+        meta.color,
+        AppOptions.get("highlightEditorColors")
+      );
+      if (!color || !uiManager) {
+        return false;
+      }
+      this.eventBus.dispatch("switchannotationeditorparams", {
+        source: this,
+        type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+        value: color,
+      });
+      this.eventBus.dispatch("mainhighlightcolorpickerupdatecolor", {
+        source: this,
+        value: color,
+      });
+      if (uiManager.highlightSelection("keyboard")) {
+        return true;
+      }
+      this.eventBus.dispatch("switchannotationeditormode", {
+        source: this,
+        mode: AnnotationEditorType.HIGHLIGHT,
+        isFromKeyboard: true,
+      });
+      return true;
+    }
+
+    case "style": {
+      if (!uiManager) {
+        return false;
+      }
+      this.eventBus.dispatch("switchannotationeditorparams", {
+        source: this,
+        type: AnnotationEditorParamsType.UNDERLINE_STYLE,
+        value: meta.style,
+      });
+      if (uiManager.underlineSelection("keyboard")) {
+        return true;
+      }
+      this.eventBus.dispatch("switchannotationeditormode", {
+        source: this,
+        mode: AnnotationEditorType.UNDERLINE,
+        isFromKeyboard: true,
+      });
+      return true;
+    }
+  }
+  return false;
 }
 
 export { PDFViewerApplication };

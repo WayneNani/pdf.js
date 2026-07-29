@@ -955,6 +955,17 @@ See https://github.com/adobe-type-tools/cmap-resources
                       <div class="horizontalToolbarSeparator"></div>
 
                       <button
+                        id="keyboardShortcuts"
+                        class="toolbarButton labeled"
+                        type="button"
+                        tabindex="0"
+                        data-l10n-id="pdfjs-shortcuts-button"
+                        aria-controls="keyboardShortcutsDialog"
+                      >
+                        <span data-l10n-id="pdfjs-shortcuts-button-label"></span>
+                      </button>
+
+                      <button
                         id="documentProperties"
                         class="toolbarButton labeled"
                         type="button"
@@ -1063,6 +1074,24 @@ See https://github.com/adobe-type-tools/cmap-resources
           </div>
           <div class="buttonRow">
             <button id="documentPropertiesClose" class="dialogButton" type="button"><span data-l10n-id="pdfjs-document-properties-close-button"></span></button>
+          </div>
+        </dialog>
+        <dialog id="keyboardShortcutsDialog" class="dialog" aria-labelledby="keyboardShortcutsTitle">
+          <div class="mainContainer">
+            <div class="title">
+              <span id="keyboardShortcutsTitle" data-l10n-id="pdfjs-shortcuts-dialog-label" role="sectionhead" tabindex="0"></span>
+            </div>
+            <div id="keyboardShortcutsDescription" data-l10n-id="pdfjs-shortcuts-dialog-description"></div>
+            <div id="keyboardShortcutsList" class="shortcutsList"></div>
+            <div id="keyboardShortcutsStatus" class="shortcutsStatus" hidden></div>
+            <div class="buttonRow">
+              <button id="keyboardShortcutsReset" class="dialogButton" type="button">
+                <span data-l10n-id="pdfjs-shortcuts-reset-button"></span>
+              </button>
+              <button id="keyboardShortcutsClose" class="dialogButton" type="button">
+                <span data-l10n-id="pdfjs-shortcuts-close-button"></span>
+              </button>
+            </div>
           </div>
         </dialog>
         <dialog class="dialog altText" id="altTextDialog" aria-labelledby="dialogLabel" aria-describedby="dialogDescription">

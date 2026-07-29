@@ -530,6 +530,15 @@ const defaultOptions = new Map([
       ]
     : []),
   [
+    "keyboardShortcuts",
+    {
+      /** @type {string} */
+      // JSON object of actionId → binding; empty object uses built-in defaults.
+      value: "{}",
+      kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+    },
+  ],
+  [
     "highlightEditorColors",
     {
       /** @type {string} */
