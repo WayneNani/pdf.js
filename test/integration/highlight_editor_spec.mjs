@@ -2753,6 +2753,64 @@ describe("Highlight Editor", () => {
     });
   });
 
+  describe("Underline style persists for the next mark", () => {
+    let pages;
+    const switchToUnderline = switchToEditor.bind(null, "Underline");
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        ".annotationEditorLayer",
+        null,
+        null,
+        { highlightEditorColors: "red=#AB0000,blue=#0000AB" }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must apply top-menu wavy to the selected underline and the next one", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToUnderline(page);
+
+          // First mark (default solid).
+          await highlightSpan(page, 1, "Abstract");
+          await page.waitForSelector(`${getEditorSelector(0)}.underlineEditor`);
+          await waitForSerialized(page, 1);
+          expect((await getSerialized(page))[0].style)
+            .withContext(`In ${browserName}`)
+            .toEqual("solid");
+
+          // Style change with selection: update selected + set default.
+          await page.click("#editorUnderlineButton");
+          await page.waitForSelector(
+            "#editorUnderlineParamsToolbar:not(.hidden)"
+          );
+          await page.click("#editorUnderlineStyleWavy");
+          await page.waitForSelector("#editorUnderlineParamsToolbar.hidden");
+
+          await waitForSerialized(page, 1);
+          expect((await getSerialized(page))[0].style)
+            .withContext(`In ${browserName}`)
+            .toEqual("wavy");
+
+          // Second mark must reuse wavy without another style click.
+          await highlightSpan(page, 1, "Introduction");
+          await page.waitForSelector(`${getEditorSelector(1)}.underlineEditor`);
+          await waitForSerialized(page, 2);
+          const serialized = await getSerialized(page);
+          expect(serialized.length).withContext(`In ${browserName}`).toEqual(2);
+          expect(serialized.every(e => e.style === "wavy"))
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+        })
+      );
+    });
+  });
+
   describe("Highlight must change their color when selected", () => {
     let pages;
 

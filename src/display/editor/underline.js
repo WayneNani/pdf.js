@@ -292,6 +292,16 @@ class UnderlineEditor extends AnnotationEditor {
     return this.#firstPoint;
   }
 
+  /**
+   * Line style of this underline (`solid` / `wavy` / `dotted`).
+   * Exposed so the UI manager can mirror it into the "for new" default
+   * when this editor is selected (parity with `color`).
+   * @type {string}
+   */
+  get style() {
+    return this.#style;
+  }
+
   /** @inheritdoc */
   updateParams(type, value) {
     switch (type) {

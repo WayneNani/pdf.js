@@ -2391,10 +2391,17 @@ class AnnotationEditorUIManager {
       for (const editor of this.#selectedEditors) {
         editor.updateParams(type, value);
       }
+      // Style changes must also stick as the default for the next underline,
+      // matching color parity (color syncs via #syncHighlightColorFromEditor).
+      if (type === AnnotationEditorParamsType.UNDERLINE_STYLE) {
+        this.#setUnderlineStyleForNew(value);
+      }
     } else if (type === AnnotationEditorParamsType.HIGHLIGHT_COLOR) {
       this.#setHighlightColorForNew(value);
     } else if (type === AnnotationEditorParamsType.UNDERLINE_COLOR) {
       this.#setUnderlineColorForNew(value);
+    } else if (type === AnnotationEditorParamsType.UNDERLINE_STYLE) {
+      this.#setUnderlineStyleForNew(value);
     } else {
       for (const editorType of this.#editorTypes) {
         editorType.updateDefaultParams(type, value);
@@ -2657,9 +2664,9 @@ class AnnotationEditorUIManager {
   }
 
   /**
-   * When a highlight is (re)selected, make its color the default one so
-   * that the next highlight created from scratch reuses the same color,
-   * even if it was a free-form (i.e. non-preset) color.
+   * When a highlight/underline is (re)selected, make its color (and for
+   * underlines, its line style) the default so the next annotation created
+   * from scratch reuses the same look — including free-form colors.
    * @param {AnnotationEditor} editor
    */
   #syncHighlightColorFromEditor(editor) {
@@ -2674,6 +2681,9 @@ class AnnotationEditorUIManager {
       }
     } else if (editor.mode === AnnotationEditorType.UNDERLINE) {
       this.#setUnderlineColorForNew(color);
+      if (editor.style) {
+        this.#setUnderlineStyleForNew(editor.style);
+      }
       if (!this.highlightColorNames?.has(color)) {
         this.addRecentHighlightColor(color);
       }
@@ -2760,6 +2770,28 @@ class AnnotationEditorUIManager {
     }
     this.#dispatchUpdateUI([
       [AnnotationEditorParamsType.UNDERLINE_COLOR, color],
+    ]);
+  }
+
+  /**
+   * Update the line style used for the next underlines.
+   * @param {string} style
+   */
+  #setUnderlineStyleForNew(style) {
+    if (!style) {
+      return;
+    }
+    for (const editorType of this.#editorTypes || []) {
+      if (editorType._editorType === AnnotationEditorType.UNDERLINE) {
+        editorType.updateDefaultParams(
+          AnnotationEditorParamsType.UNDERLINE_STYLE,
+          style
+        );
+        break;
+      }
+    }
+    this.#dispatchUpdateUI([
+      [AnnotationEditorParamsType.UNDERLINE_STYLE, style],
     ]);
   }
 
