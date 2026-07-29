@@ -14,7 +14,6 @@
  */
 
 import { noContextMenu, stopEvent } from "../display_utils.js";
-import { AnnotationEditorParamsType } from "../../shared/util.js";
 
 class EditorToolbar {
   #toolbar = null;
@@ -319,11 +318,6 @@ class FloatingToolbar {
       }
     );
 
-    const colors = this.#uiManager.highlightColors;
-    if (colors) {
-      this.#addColorSwatches(colors);
-    }
-
     return editToolbar;
   }
 
@@ -362,39 +356,6 @@ class FloatingToolbar {
 
   hide() {
     this.#toolbar.remove();
-  }
-
-  #addColorSwatches(colors) {
-    const container = document.createElement("div");
-    container.className = "colorSwatches";
-    const signal = this.#uiManager._signal;
-    for (const [, color] of colors) {
-      const button = document.createElement("button");
-      button.classList.add("colorSwatch");
-      button.tabIndex = 0;
-      button.setAttribute("data-color", color);
-      const swatch = document.createElement("span");
-      swatch.className = "swatch";
-      swatch.style.backgroundColor = color;
-      button.append(swatch);
-      if (signal instanceof AbortSignal && !signal.aborted) {
-        button.addEventListener("contextmenu", noContextMenu, { signal });
-        button.addEventListener(
-          "click",
-          () => {
-            this.#uiManager._eventBus.dispatch("switchannotationeditorparams", {
-              source: this,
-              type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
-              value: color,
-            });
-            this.#uiManager.highlightSelection("floating_button");
-          },
-          { signal }
-        );
-      }
-      container.append(button);
-    }
-    this.#buttons.append(container);
   }
 
   #makeButton(buttonClass, l10nId, labelL10nId, clickHandler) {
