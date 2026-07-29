@@ -3388,7 +3388,17 @@ function onKeyDown(evt) {
         this.pdfCursorTools?.switchTool(CursorTool.SELECT);
         break;
       case 72: // 'h'
-        this.pdfCursorTools?.switchTool(CursorTool.HAND);
+        // With a text selection: highlight using the last used color.
+        // Otherwise: switch to the Hand tool (historical 'h' binding).
+        if (
+          this.pdfViewer._layerProperties.annotationEditorUIManager?.highlightSelection(
+            "keyboard"
+          )
+        ) {
+          handled = true;
+        } else {
+          this.pdfCursorTools?.switchTool(CursorTool.HAND);
+        }
         break;
 
       case 82: // 'r'

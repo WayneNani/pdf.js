@@ -1453,10 +1453,17 @@ class AnnotationEditorUIManager {
     return null;
   }
 
+  /**
+   * Highlight the current text selection using the last used highlight color.
+   * @param {string} [methodOfCreation]
+   * @param {boolean} [comment]
+   * @returns {boolean} True when a highlightable selection was found and
+   *   highlighting was started.
+   */
   highlightSelection(methodOfCreation = "", comment = false) {
     const selection = document.getSelection();
     if (!selection || selection.isCollapsed) {
-      return;
+      return false;
     }
     const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
     const text = selection.toString();
@@ -1464,7 +1471,7 @@ class AnnotationEditorUIManager {
     const textLayer = anchorElement.closest(".textLayer");
     const boxes = this.getSelectionBoxes(textLayer);
     if (!boxes) {
-      return;
+      return false;
     }
     selection.empty();
 
@@ -1491,9 +1498,10 @@ class AnnotationEditorUIManager {
     };
     if (isNoneMode) {
       this.switchToMode(AnnotationEditorType.HIGHLIGHT, callback);
-      return;
+      return true;
     }
     callback();
+    return true;
   }
 
   commentSelection(methodOfCreation = "") {

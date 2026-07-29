@@ -3069,4 +3069,71 @@ describe("Highlight Editor", () => {
       });
     });
   });
+
+  describe("Shortcut h with text selection", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        `.page[data-page-number = "1"] .endOfContent`,
+        null,
+        null,
+        { highlightEditorColors: "red=#AB0000,green=#00AB00" }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must highlight the selection with the last used color", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+          await page.evaluate(() => {
+            window.PDFViewerApplication.eventBus.dispatch(
+              "switchannotationeditorparams",
+              {
+                source: null,
+                type: window.pdfjsLib.AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+                value: "#00AB00",
+              }
+            );
+          });
+          // Leave highlight mode so 'h' must switch modes itself.
+          await switchToHighlight(page, /* disable = */ true);
+
+          const rect = await getSpanRectFromText(page, 1, "Abstract");
+          const x = rect.x + rect.width / 2;
+          const y = rect.y + rect.height / 2;
+          await page.mouse.click(x, y, { count: 2, delay: 100 });
+          await page.waitForFunction(
+            () => !document.getSelection().isCollapsed
+          );
+
+          await page.keyboard.press("h");
+          await page.waitForSelector(getEditorSelector(0));
+
+          const usedColor = await page.evaluate(() => {
+            const highlight = document.querySelector(
+              `.page[data-page-number = "1"] .canvasWrapper > svg.highlight`
+            );
+            return highlight.getAttribute("fill");
+          });
+          expect(usedColor).withContext(`In ${browserName}`).toEqual("#00AB00");
+
+          // Without a selection, 'h' still activates the Hand tool.
+          await page.mouse.click(rect.x + rect.width + 10, y);
+          await page.waitForFunction(() => document.getSelection().isCollapsed);
+          await page.keyboard.press("h");
+          await page.waitForFunction(
+            () =>
+              window.PDFViewerApplication.pdfCursorTools.activeTool ===
+              /* CursorTool.HAND = */ 1
+          );
+        })
+      );
+    });
+  });
 });
