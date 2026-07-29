@@ -324,6 +324,11 @@ class HighlightEditor extends AnnotationEditor {
       case AnnotationEditorParamsType.HIGHLIGHT_THICKNESS:
         this.#updateThickness(value);
         break;
+      case AnnotationEditorParamsType.HIGHLIGHT_STRAIGHT_LINE:
+        // Drawing-mode default only — still apply when an editor is selected
+        // (AnnotationEditorUIManager.updateParams routes to instances then).
+        HighlightEditor._defaultStraightLine = value;
+        break;
     }
   }
 

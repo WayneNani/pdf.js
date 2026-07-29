@@ -1223,9 +1223,9 @@ describe("Highlight Editor", () => {
             .withContext(`In ${browserName}`)
             .toBeTrue();
 
-          await clearEditors("highlight", page);
-
-          // Enable the straight line toggle.
+          // Toggle while the free highlight is still selected — the drawing
+          // mode default must update even though params are routed to the
+          // selected editor instance.
           await page.waitForSelector(
             "#editorHighlightStraightLineButton[aria-pressed=false]"
           );
@@ -1234,10 +1234,34 @@ describe("Highlight Editor", () => {
             "#editorHighlightStraightLineButton[aria-pressed=true]"
           );
 
+          await clearEditors("highlight", page);
+
+          // Min thickness (2pt) must still produce a visible two-point stroke.
+          await page.waitForSelector(
+            "#editorFreeHighlightThickness:not([disabled])"
+          );
+          await page.$eval("#editorFreeHighlightThickness", el => {
+            el.value = 2;
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+          });
+
           await drag();
           await waitForSerialized(page, 1);
           points = await getFirstSerialized(page, e => e.outlines.points[0]);
           expect(points.length).withContext(`In ${browserName}`).toEqual(4);
+
+          // Freehand must still work after toggling straight-line off.
+          await page.click("#editorHighlightStraightLineButton");
+          await page.waitForSelector(
+            "#editorHighlightStraightLineButton[aria-pressed=false]"
+          );
+          await clearEditors("highlight", page);
+          await drag();
+          await waitForSerialized(page, 1);
+          points = await getFirstSerialized(page, e => e.outlines.points[0]);
+          expect(points.length > 4)
+            .withContext(`In ${browserName} after toggle off`)
+            .toBeTrue();
         })
       );
     });

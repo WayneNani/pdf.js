@@ -216,14 +216,21 @@ class FreeDrawOutliner {
    * Draw a straight line from the initial point to the given point, instead
    * of a freehand curve. Used when the straight-line drawing mode is
    * enabled.
+   *
+   * Only the start is kept in `#points`; `getOutlines()` appends the true
+   * end from `#lastX`/`#lastY`. That yields a two-point outline (4 coords)
+   * instead of duplicating the end the way freehand sampling does.
    */
   setEndPoint(point) {
     this.#top = [];
     this.#bottom = [];
     this.#last = new Float32Array(18);
     this.#last.set([NaN, NaN, NaN, NaN, this.#startX, this.#startY], 6);
+    // Suppress `add()`'s point push so the end is recorded only via lastX/Y.
+    this.#points = null;
+    const changed = this.add(point);
     this.#points = [this.#startX, this.#startY];
-    return this.add(point);
+    return changed;
   }
 
   toSVGPath() {
