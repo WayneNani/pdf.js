@@ -310,6 +310,15 @@ class FloatingToolbar {
       }
     );
 
+    this.#makeButton(
+      "underlineButton",
+      `pdfjs-underline-floating-button`,
+      "pdfjs-underline-floating-button-label",
+      () => {
+        this.#uiManager.underlineSelection("floating_button");
+      }
+    );
+
     const colors = this.#uiManager.highlightColors;
     if (colors) {
       this.#addColorSwatches(colors);

@@ -577,6 +577,71 @@ See https://github.com/adobe-type-tools/cmap-resources
                       </div>
                     </div>
                   </div>
+                  <div id="editorUnderline" class="toolbarButtonWithContainer">
+                    <button
+                      id="editorUnderlineButton"
+                      class="toolbarButton"
+                      type="button"
+                      disabled="disabled"
+                      aria-expanded="false"
+                      aria-haspopup="true"
+                      aria-controls="editorUnderlineParamsToolbar"
+                      tabindex="0"
+                      data-l10n-id="pdfjs-editor-underline-button"
+                    >
+                      <span data-l10n-id="pdfjs-editor-underline-button-label"></span>
+                    </button>
+                    <div class="editorParamsToolbar hidden doorHangerRight" id="editorUnderlineParamsToolbar">
+                      <div id="underlineParamsToolbarContainer" class="editorParamsToolbarContainer">
+                        <div id="editorUnderlineColorPicker" class="colorPicker">
+                          <span id="underlineColorPickerLabel" class="editorParamsLabel" data-l10n-id="pdfjs-editor-underline-colorpicker-label"></span>
+                        </div>
+                        <div id="editorUnderlineStyle">
+                          <label class="editorParamsLabel" data-l10n-id="pdfjs-editor-underline-style-label"></label>
+                          <div class="underlineStyleButtons">
+                            <button
+                              id="editorUnderlineStyleSolid"
+                              class="toolbarButton toggled"
+                              type="button"
+                              data-style="solid"
+                              data-l10n-id="pdfjs-editor-underline-style-solid"
+                              tabindex="0"
+                            ></button>
+                            <button
+                              id="editorUnderlineStyleWavy"
+                              class="toolbarButton"
+                              type="button"
+                              data-style="wavy"
+                              data-l10n-id="pdfjs-editor-underline-style-wavy"
+                              tabindex="0"
+                            ></button>
+                            <button
+                              id="editorUnderlineStyleDotted"
+                              class="toolbarButton"
+                              type="button"
+                              data-style="dotted"
+                              data-l10n-id="pdfjs-editor-underline-style-dotted"
+                              tabindex="0"
+                            ></button>
+                          </div>
+                        </div>
+                        <div id="editorUnderlineVisibility">
+                          <div class="divider"></div>
+                          <div class="toggler">
+                            <label for="editorUnderlineShowAll" class="editorParamsLabel" data-l10n-id="pdfjs-editor-underline-show-all-button-label"></label>
+                            <button
+                              id="editorUnderlineShowAll"
+                              class="toggle-button"
+                              type="button"
+                              data-l10n-id="pdfjs-editor-underline-show-all-button"
+                              aria-pressed="true"
+                              tabindex="0"
+                            ></button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                   <div id="editorFreeText" class="toolbarButtonWithContainer">
                     <button
                       id="editorFreeTextButton"

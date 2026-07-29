@@ -15,7 +15,12 @@
 
 /** @typedef {import("./event_utils.js").EventBus} EventBus */
 
-import { AnnotationEditorType, ColorPicker, noContextMenu } from "pdfjs-lib";
+import {
+  AnnotationEditorParamsType,
+  AnnotationEditorType,
+  ColorPicker,
+  noContextMenu,
+} from "pdfjs-lib";
 import {
   DEFAULT_SCALE,
   DEFAULT_SCALE_VALUE,
@@ -105,6 +110,18 @@ class Toolbar {
         },
       },
       {
+        element: options.editorUnderlineButton,
+        eventName: "switchannotationeditormode",
+        eventDetails: {
+          get mode() {
+            const { classList } = options.editorUnderlineButton;
+            return classList.contains("toggled")
+              ? AnnotationEditorType.NONE
+              : AnnotationEditorType.UNDERLINE;
+          },
+        },
+      },
+      {
         element: options.editorInkButton,
         eventName: "switchannotationeditormode",
         eventDetails: {
@@ -144,7 +161,7 @@ class Toolbar {
           },
         },
       },
-    ];
+    ].filter(button => button.element);
 
     // Bind the event listeners for click and various other actions.
     this.#bindListeners(buttons);
@@ -204,6 +221,8 @@ class Toolbar {
     const {
       editorHighlightColorPicker,
       editorHighlightButton,
+      editorUnderlineButton,
+      editorUnderlineColorPicker,
       pageNumber,
       scaleSelect,
     } = this.#opts;
@@ -285,6 +304,9 @@ class Toolbar {
           case AnnotationEditorType.HIGHLIGHT:
             editorHighlightButton.click();
             break;
+          case AnnotationEditorType.UNDERLINE:
+            editorUnderlineButton.click();
+            break;
         }
       },
       internalOpt
@@ -302,6 +324,23 @@ class Toolbar {
           const cp = (this.#colorPicker = new ColorPicker({ uiManager }));
           uiManager.setMainHighlightColorPicker(cp);
           editorHighlightColorPicker.append(cp.renderMainDropdown());
+          if (editorUnderlineColorPicker) {
+            const underlineCp = new ColorPicker({
+              uiManager,
+              colorParamType: AnnotationEditorParamsType.UNDERLINE_COLOR,
+            });
+            editorUnderlineColorPicker.append(
+              underlineCp.renderMainDropdown("underlineColorPickerLabel")
+            );
+            // Keep underline color picker in sync when underline color updates.
+            eventBus.on(
+              "mainunderlinecolorpickerupdatecolor",
+              ({ value }) => {
+                underlineCp.updateColor(value);
+              },
+              internalOpt
+            );
+          }
         },
         internalOpt
       );
@@ -324,6 +363,8 @@ class Toolbar {
       editorFreeTextParamsToolbar,
       editorHighlightButton,
       editorHighlightParamsToolbar,
+      editorUnderlineButton,
+      editorUnderlineParamsToolbar,
       editorInkButton,
       editorInkParamsToolbar,
       editorStampButton,
@@ -347,6 +388,13 @@ class Toolbar {
       mode === AnnotationEditorType.HIGHLIGHT,
       editorHighlightParamsToolbar
     );
+    if (editorUnderlineButton) {
+      toggleExpandedBtn(
+        editorUnderlineButton,
+        mode === AnnotationEditorType.UNDERLINE,
+        editorUnderlineParamsToolbar
+      );
+    }
     toggleExpandedBtn(
       editorInkButton,
       mode === AnnotationEditorType.INK,
@@ -370,6 +418,9 @@ class Toolbar {
       editorStampButton.disabled =
       editorSignatureButton.disabled =
         mode === AnnotationEditorType.DISABLE;
+    if (editorUnderlineButton) {
+      editorUnderlineButton.disabled = mode === AnnotationEditorType.DISABLE;
+    }
   }
 
   #updateUIState(resetNumPages = false) {

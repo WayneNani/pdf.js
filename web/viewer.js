@@ -61,6 +61,13 @@ function getViewerConfiguration() {
       editorHighlightColorPicker: document.getElementById(
         "editorHighlightColorPicker"
       ),
+      editorUnderlineButton: document.getElementById("editorUnderlineButton"),
+      editorUnderlineParamsToolbar: document.getElementById(
+        "editorUnderlineParamsToolbar"
+      ),
+      editorUnderlineColorPicker: document.getElementById(
+        "editorUnderlineColorPicker"
+      ),
       editorInkButton: document.getElementById("editorInkButton"),
       editorInkParamsToolbar: document.getElementById("editorInkParamsToolbar"),
       editorStampButton: document.getElementById("editorStampButton"),
@@ -350,6 +357,16 @@ function getViewerConfiguration() {
         "editorHighlightStraightLineButton"
       ),
       editorHighlightShowAll: document.getElementById("editorHighlightShowAll"),
+      editorUnderlineStyleSolid: document.getElementById(
+        "editorUnderlineStyleSolid"
+      ),
+      editorUnderlineStyleWavy: document.getElementById(
+        "editorUnderlineStyleWavy"
+      ),
+      editorUnderlineStyleDotted: document.getElementById(
+        "editorUnderlineStyleDotted"
+      ),
+      editorUnderlineShowAll: document.getElementById("editorUnderlineShowAll"),
     },
     printContainer: document.getElementById("printContainer"),
     editorUndoBar: {

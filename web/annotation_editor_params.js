@@ -37,6 +37,10 @@ import { internalOpt } from "./internal_evt.js";
  * @property {HTMLButtonElement} editorHighlightStraightLineButton
  * @property {HTMLButtonElement} editorHighlightShowAll
  * @property {HTMLButtonElement} editorSignatureAddSignature
+ * @property {HTMLButtonElement} editorUnderlineStyleSolid
+ * @property {HTMLButtonElement} editorUnderlineStyleWavy
+ * @property {HTMLButtonElement} editorUnderlineStyleDotted
+ * @property {HTMLButtonElement} editorUnderlineShowAll
  */
 
 class AnnotationEditorParams {
@@ -64,6 +68,10 @@ class AnnotationEditorParams {
     editorHighlightStraightLineButton,
     editorHighlightShowAll,
     editorSignatureAddSignature,
+    editorUnderlineStyleSolid,
+    editorUnderlineStyleWavy,
+    editorUnderlineStyleDotted,
+    editorUnderlineShowAll,
   }) {
     const { eventBus } = this;
 
@@ -188,6 +196,28 @@ class AnnotationEditorParams {
       dispatchEvent("CREATE");
     });
 
+    const underlineStyleButtons = [
+      editorUnderlineStyleSolid,
+      editorUnderlineStyleWavy,
+      editorUnderlineStyleDotted,
+    ].filter(Boolean);
+    const setUnderlineStyleUI = style => {
+      for (const button of underlineStyleButtons) {
+        button.classList.toggle("toggled", button.dataset.style === style);
+      }
+    };
+    for (const button of underlineStyleButtons) {
+      button.addEventListener("click", function () {
+        setUnderlineStyleUI(this.dataset.style);
+        dispatchEvent("UNDERLINE_STYLE", this.dataset.style);
+      });
+    }
+    editorUnderlineShowAll?.addEventListener("click", function () {
+      const checked = this.getAttribute("aria-pressed") === "true";
+      this.setAttribute("aria-pressed", !checked);
+      dispatchEvent("UNDERLINE_SHOW_ALL", !checked);
+    });
+
     eventBus.on(
       "annotationeditorparamschanged",
       evt => {
@@ -229,6 +259,18 @@ class AnnotationEditorParams {
               break;
             case AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL:
               editorHighlightShowAll.setAttribute("aria-pressed", value);
+              break;
+            case AnnotationEditorParamsType.UNDERLINE_COLOR:
+              eventBus.dispatch("mainunderlinecolorpickerupdatecolor", {
+                source: this,
+                value,
+              });
+              break;
+            case AnnotationEditorParamsType.UNDERLINE_STYLE:
+              setUnderlineStyleUI(value);
+              break;
+            case AnnotationEditorParamsType.UNDERLINE_SHOW_ALL:
+              editorUnderlineShowAll?.setAttribute("aria-pressed", value);
               break;
           }
         }

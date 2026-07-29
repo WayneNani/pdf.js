@@ -37,6 +37,7 @@ import { HighlightEditor } from "./highlight.js";
 import { InkEditor } from "./ink.js";
 import { SignatureEditor } from "./signature.js";
 import { StampEditor } from "./stamp.js";
+import { UnderlineEditor } from "./underline.js";
 
 /**
  * @typedef {Object} AnnotationEditorLayerOptions
@@ -103,6 +104,7 @@ class AnnotationEditorLayer {
       InkEditor,
       StampEditor,
       HighlightEditor,
+      UnderlineEditor,
       SignatureEditor,
     ].map(type => [type._editorType, type])
   );
@@ -182,6 +184,7 @@ class AnnotationEditorLayer {
         this.enableClick();
         break;
       case AnnotationEditorType.HIGHLIGHT:
+      case AnnotationEditorType.UNDERLINE:
         this.enableTextSelection();
         this.togglePointerEvents(false);
         this.disableClick();
@@ -461,6 +464,10 @@ class AnnotationEditorLayer {
     // Unselect all the editors in order to let the user select some text
     // without being annoyed by an editor toolbar.
     this.#uiManager.unselectAll();
+    // Free-draw highlighting is highlight-mode only; underline is text-select.
+    if (this.#uiManager.getMode() !== AnnotationEditorType.HIGHLIGHT) {
+      return;
+    }
     const { target } = event;
     if (
       target === this.#textLayer.div ||
@@ -867,7 +874,8 @@ class AnnotationEditorLayer {
    * @param {PointerEvent} event
    */
   pointerdown(event) {
-    if (this.#uiManager.getMode() === AnnotationEditorType.HIGHLIGHT) {
+    if (this.#uiManager.getMode() === AnnotationEditorType.HIGHLIGHT ||
+        this.#uiManager.getMode() === AnnotationEditorType.UNDERLINE) {
       this.enableTextSelection();
     }
     if (this.#hadPointerDown) {

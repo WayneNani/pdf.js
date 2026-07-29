@@ -15,6 +15,7 @@
 
 import {
   AnnotationEditorParamsType,
+  AnnotationEditorType,
   FeatureTest,
   shadow,
   Util,
@@ -35,6 +36,8 @@ class ColorPicker {
   #customColorInput = null;
 
   #defaultColor;
+
+  #colorParamType;
 
   #dropdown = null;
 
@@ -67,7 +70,7 @@ class ColorPicker {
     );
   }
 
-  constructor({ editor = null, uiManager = null }) {
+  constructor({ editor = null, uiManager = null, colorParamType = null }) {
     if (editor) {
       this.#isMainColorPicker = false;
       this.#editor = editor;
@@ -80,6 +83,11 @@ class ColorPicker {
       editor?.color?.toUpperCase() ||
       this.#uiManager?.highlightColors.values().next().value ||
       "#FFFF98";
+    this.#colorParamType =
+      colorParamType ||
+      (editor?.mode === AnnotationEditorType.UNDERLINE
+        ? AnnotationEditorParamsType.UNDERLINE_COLOR
+        : AnnotationEditorParamsType.HIGHLIGHT_COLOR);
 
     ColorPicker.#l10nColor ||= Object.freeze({
       blue: "pdfjs-editor-colorpicker-blue",
@@ -115,10 +123,10 @@ class ColorPicker {
     return button;
   }
 
-  renderMainDropdown() {
+  renderMainDropdown(labelledBy = "highlightColorPickerLabel") {
     const dropdown = (this.#dropdown = this.#getDropdownRoot());
     dropdown.ariaOrientation = "horizontal";
-    dropdown.ariaLabelledBy = "highlightColorPickerLabel";
+    dropdown.ariaLabelledBy = labelledBy;
     this.#refreshRecentColors();
 
     return dropdown;
@@ -224,7 +232,7 @@ class ColorPicker {
     event.stopPropagation();
     this.#eventBus.dispatch("switchannotationeditorparams", {
       source: this,
-      type: AnnotationEditorParamsType.HIGHLIGHT_COLOR,
+      type: this.#colorParamType,
       value: color,
     });
     this.updateColor(color);

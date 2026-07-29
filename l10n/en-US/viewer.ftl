@@ -309,10 +309,17 @@ pdfjs-editor-stamp-button-label = Add or edit images
 pdfjs-editor-highlight-button =
     .title = Highlight
 pdfjs-editor-highlight-button-label = Highlight
+pdfjs-editor-underline-button =
+    .title = Underline
+pdfjs-editor-underline-button-label = Underline
 pdfjs-highlight-floating-button1 =
     .title = Highlight
     .aria-label = Highlight
 pdfjs-highlight-floating-button-label = Highlight
+pdfjs-underline-floating-button =
+    .title = Underline
+    .aria-label = Underline
+pdfjs-underline-floating-button-label = Underline
 pdfjs-comment-floating-button =
     .title = Comment
     .aria-label = Comment
@@ -330,6 +337,9 @@ pdfjs-editor-signature-button-label = Add signature
 # “Highlight” is a noun, the string is used on the editor for highlights.
 pdfjs-editor-highlight-editor =
     .aria-label = Highlight editor
+# “Underline” is a noun, the string is used on the editor for underlines.
+pdfjs-editor-underline-editor =
+    .aria-label = Underline editor
 # “Drawing” is a noun, the string is used on the editor for drawings.
 pdfjs-editor-ink-editor =
     .aria-label = Drawing editor
@@ -455,6 +465,8 @@ pdfjs-editor-resizer-middle-left =
 
 # This means "Color used to highlight text"
 pdfjs-editor-highlight-colorpicker-label = Highlight color
+# This means "Color used to underline text"
+pdfjs-editor-underline-colorpicker-label = Underline color
 
 pdfjs-editor-colorpicker-button =
     .title = Change color
@@ -499,6 +511,22 @@ pdfjs-editor-highlight-straight-line-button =
 
 pdfjs-editor-highlight-show-all-button-label = Show all
 pdfjs-editor-highlight-show-all-button =
+    .title = Show all
+
+## Underline line style
+
+pdfjs-editor-underline-style-label = Line style
+pdfjs-editor-underline-style-solid =
+    .title = Solid
+pdfjs-editor-underline-style-wavy =
+    .title = Wavy
+pdfjs-editor-underline-style-dotted =
+    .title = Dotted
+
+## Show all underlines
+
+pdfjs-editor-underline-show-all-button-label = Show all
+pdfjs-editor-underline-show-all-button =
     .title = Show all
 
 ## New alt-text dialog
@@ -571,6 +599,7 @@ pdfjs-editor-alt-text-settings-close-button = Close
 ## Accessibility labels (announced by screen readers) for objects added to the editor.
 
 pdfjs-editor-highlight-added-alert = Highlight added
+pdfjs-editor-underline-added-alert = Underline added
 pdfjs-editor-freetext-added-alert = Text added
 pdfjs-editor-ink-added-alert = Drawing added
 pdfjs-editor-stamp-added-alert = Image added
@@ -579,6 +608,7 @@ pdfjs-editor-signature-added-alert = Signature added
 ## "Annotations removed" bar
 
 pdfjs-editor-undo-bar-message-highlight = Highlight removed
+pdfjs-editor-undo-bar-message-underline = Underline removed
 pdfjs-editor-undo-bar-message-freetext = Text removed
 pdfjs-editor-undo-bar-message-ink = Drawing removed
 pdfjs-editor-undo-bar-message-stamp = Image removed

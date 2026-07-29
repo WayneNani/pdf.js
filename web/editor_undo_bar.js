@@ -37,6 +37,7 @@ class EditorUndoBar {
 
   static #l10nMessages = Object.freeze({
     highlight: "pdfjs-editor-undo-bar-message-highlight",
+    underline: "pdfjs-editor-undo-bar-message-underline",
     freetext: "pdfjs-editor-undo-bar-message-freetext",
     stamp: "pdfjs-editor-undo-bar-message-stamp",
     ink: "pdfjs-editor-undo-bar-message-ink",

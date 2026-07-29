@@ -154,6 +154,19 @@
       .inkEditor,
       .stampEditor,
       .signatureEditor,
+      .underlineEditor,
+      .commentPopup
+    ) {
+    pointer-events: auto;
+  }
+
+  &.underlineEditing
+    :is(
+      .freeTextEditor,
+      .inkEditor,
+      .stampEditor,
+      .signatureEditor,
+      .highlightEditor,
       .commentPopup
     ) {
     pointer-events: auto;
@@ -236,6 +249,7 @@
     .inkEditor,
     .stampEditor,
     .highlightEditor,
+    .underlineEditor,
     .signatureEditor
   ),
 .textLayer {
@@ -243,6 +257,7 @@
     --editor-toolbar-delete-image: url(images/editor-toolbar-delete.svg);
     --editor-toolbar-bg-color: light-dark(#f0f0f4, #2b2a33);
     --editor-toolbar-highlight-image: url(images/toolbarButton-editorHighlight.svg);
+    --editor-toolbar-underline-image: url(images/toolbarButton-editorUnderline.svg);
     --editor-toolbar-fg-color: light-dark(#2e2e56, #fbfbfe);
     --editor-toolbar-border-color: #8f8f9d;
     --editor-toolbar-hover-border-color: var(--editor-toolbar-border-color);
@@ -353,6 +368,10 @@
 
         &.highlightButton::before {
           mask-image: var(--editor-toolbar-highlight-image);
+        }
+
+        &.underlineButton::before {
+          mask-image: var(--editor-toolbar-underline-image);
         }
 
         &.commentButton::before {
@@ -1159,7 +1178,8 @@
     }
   }
 
-  .highlightEditor {
+  .highlightEditor,
+  .underlineEditor {
     position: absolute;
     background: transparent;
     z-index: 1;
@@ -1299,7 +1319,12 @@
   padding: unset;
 }
 
-#highlightParamsToolbarContainer {
+.editorParamsToolbar:has(#underlineParamsToolbarContainer) {
+  padding: unset;
+}
+
+#highlightParamsToolbarContainer,
+#underlineParamsToolbarContainer {
   gap: 16px;
   padding-inline: 10px;
   padding-block-end: 12px;
@@ -1421,12 +1446,24 @@
   }
 
   #editorHighlightStraightLine,
-  #editorHighlightVisibility {
+  #editorHighlightVisibility,
+  #editorUnderlineStyle,
+  #editorUnderlineVisibility {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     gap: 8px;
     align-self: stretch;
+
+    .underlineStyleButtons {
+      display: flex;
+      gap: 4px;
+
+      .toolbarButton {
+        width: 28px;
+        height: 28px;
+      }
+    }
 
     .divider {
       --divider-color: light-dark(#d7d7db, #8f8f9d);

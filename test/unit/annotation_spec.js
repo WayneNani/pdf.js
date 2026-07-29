@@ -6450,6 +6450,96 @@ describe("annotation", function () {
         Float32Array.from([10, 20, 20, 20, 10, 10, 20, 10])
       );
     });
+
+    it("should create a new solid Underline annotation", async function () {
+      const xref = (partialEvaluator.xref = new XRefMock());
+      const changes = new RefSetCache();
+      const task = new WorkerTask("test Underline creation");
+      await AnnotationFactory.saveNewAnnotations(
+        partialEvaluator,
+        xref,
+        task,
+        [
+          {
+            annotationType: AnnotationEditorType.UNDERLINE,
+            rect: [12, 34, 56, 78],
+            rotation: 0,
+            opacity: 1,
+            color: [255, 0, 0],
+            style: "solid",
+            quadPoints: [10, 20, 20, 20, 10, 10, 20, 10],
+          },
+        ],
+        null,
+        changes
+      );
+      const data = await writeChanges(changes, xref);
+
+      const base = data[0].data.replace(/\(D:\d+\)/, "(date)");
+      expect(base).toContain("/Subtype /Underline");
+      expect(base).toContain("/IT /UnderlineSolid");
+      expect(base).toContain("/C [1 0 0]");
+      expect(data[1].data).toContain("0.571 w");
+    });
+
+    it("should create a new dotted Underline annotation", async function () {
+      const xref = (partialEvaluator.xref = new XRefMock());
+      const changes = new RefSetCache();
+      const task = new WorkerTask("test dotted Underline creation");
+      await AnnotationFactory.saveNewAnnotations(
+        partialEvaluator,
+        xref,
+        task,
+        [
+          {
+            annotationType: AnnotationEditorType.UNDERLINE,
+            rect: [12, 34, 56, 78],
+            rotation: 0,
+            opacity: 1,
+            color: [0, 0, 255],
+            style: "dotted",
+            quadPoints: [10, 20, 20, 20, 10, 10, 20, 10],
+          },
+        ],
+        null,
+        changes
+      );
+      const data = await writeChanges(changes, xref);
+
+      const base = data[0].data.replace(/\(D:\d+\)/, "(date)");
+      expect(base).toContain("/Subtype /Underline");
+      expect(base).toContain("/IT /UnderlineDotted");
+      expect(data[1].data).toContain("[1 1.5] 0 d");
+    });
+
+    it("should create a new Squiggly annotation for wavy style", async function () {
+      const xref = (partialEvaluator.xref = new XRefMock());
+      const changes = new RefSetCache();
+      const task = new WorkerTask("test Squiggly creation");
+      await AnnotationFactory.saveNewAnnotations(
+        partialEvaluator,
+        xref,
+        task,
+        [
+          {
+            annotationType: AnnotationEditorType.UNDERLINE,
+            rect: [12, 34, 56, 78],
+            rotation: 0,
+            opacity: 1,
+            color: [0, 128, 0],
+            style: "wavy",
+            quadPoints: [10, 20, 20, 20, 10, 10, 20, 10],
+          },
+        ],
+        null,
+        changes
+      );
+      const data = await writeChanges(changes, xref);
+
+      const base = data[0].data.replace(/\(D:\d+\)/, "(date)");
+      expect(base).toContain("/Subtype /Squiggly");
+      expect(base).not.toContain("/Subtype /Underline");
+    });
   });
 
   describe("SquigglyAnnotation", function () {

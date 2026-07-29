@@ -794,6 +794,8 @@ class AnnotationEditorUIManager {
 
   #highlightColorForNew = null;
 
+  #underlineColorForNew = null;
+
   #recentHighlightColors = [];
 
   #highlightWhenShiftUp = false;
@@ -1504,6 +1506,46 @@ class AnnotationEditorUIManager {
     return true;
   }
 
+  underlineSelection(methodOfCreation = "") {
+    const selection = document.getSelection();
+    if (!selection || selection.isCollapsed) {
+      return;
+    }
+    const { anchorNode, anchorOffset, focusNode, focusOffset } = selection;
+    const text = selection.toString();
+    const anchorElement = this.#getAnchorElementForSelection(selection);
+    const textLayer = anchorElement.closest(".textLayer");
+    const boxes = this.getSelectionBoxes(textLayer);
+    if (!boxes) {
+      return;
+    }
+    selection.empty();
+
+    const layer = this.#getLayerForTextLayer(textLayer);
+    const isNoneMode = this.#mode === AnnotationEditorType.NONE;
+    const color = this.#getUnderlineColorForNewEditor();
+    const callback = () => {
+      layer?.createAndAddNewEditor({ x: 0, y: 0 }, false, {
+        methodOfCreation,
+        boxes,
+        anchorNode,
+        anchorOffset,
+        focusNode,
+        focusOffset,
+        text,
+        color,
+      });
+      if (isNoneMode) {
+        this.showAllEditors("underline", true, /* updateButton = */ true);
+      }
+    };
+    if (isNoneMode) {
+      this.switchToMode(AnnotationEditorType.UNDERLINE, callback);
+      return;
+    }
+    callback();
+  }
+
   commentSelection(methodOfCreation = "") {
     this.highlightSelection(methodOfCreation, /* comment */ true);
   }
@@ -1613,6 +1655,7 @@ class AnnotationEditorUIManager {
 
     if (
       this.#mode !== AnnotationEditorType.HIGHLIGHT &&
+      this.#mode !== AnnotationEditorType.UNDERLINE &&
       this.#mode !== AnnotationEditorType.NONE
     ) {
       return;
@@ -1620,12 +1663,15 @@ class AnnotationEditorUIManager {
 
     if (this.#mode === AnnotationEditorType.HIGHLIGHT) {
       this.showAllEditors("highlight", true, /* updateButton = */ true);
+    } else if (this.#mode === AnnotationEditorType.UNDERLINE) {
+      this.showAllEditors("underline", true, /* updateButton = */ true);
     }
 
     this.#highlightWhenShiftUp = this.isShiftKeyDown;
     if (!this.isShiftKeyDown) {
       const activeLayer =
-        this.#mode === AnnotationEditorType.HIGHLIGHT
+        this.#mode === AnnotationEditorType.HIGHLIGHT ||
+        this.#mode === AnnotationEditorType.UNDERLINE
           ? this.#getLayerForTextLayer(textLayer)
           : null;
       activeLayer?.toggleDrawing();
@@ -1660,6 +1706,8 @@ class AnnotationEditorUIManager {
   #onSelectEnd(methodOfCreation = "") {
     if (this.#mode === AnnotationEditorType.HIGHLIGHT) {
       this.highlightSelection(methodOfCreation);
+    } else if (this.#mode === AnnotationEditorType.UNDERLINE) {
+      this.underlineSelection(methodOfCreation);
     } else if (this.#enableHighlightFloatingButton) {
       this.#displayFloatingToolbar();
     }
@@ -2325,6 +2373,10 @@ class AnnotationEditorUIManager {
         (this.#showAllStates ||= new Map()).set(type, value);
         this.showAllEditors("highlight", value);
         break;
+      case AnnotationEditorParamsType.UNDERLINE_SHOW_ALL:
+        (this.#showAllStates ||= new Map()).set(type, value);
+        this.showAllEditors("underline", value);
+        break;
     }
 
     if (this.hasSelection) {
@@ -2333,6 +2385,8 @@ class AnnotationEditorUIManager {
       }
     } else if (type === AnnotationEditorParamsType.HIGHLIGHT_COLOR) {
       this.#setHighlightColorForNew(value);
+    } else if (type === AnnotationEditorParamsType.UNDERLINE_COLOR) {
+      this.#setUnderlineColorForNew(value);
     } else {
       for (const editorType of this.#editorTypes) {
         editorType.updateDefaultParams(type, value);
@@ -2346,13 +2400,13 @@ class AnnotationEditorUIManager {
         editor.show(visible);
       }
     }
-    const state =
-      this.#showAllStates?.get(AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL) ??
-      true;
-    if (state !== visible) {
-      this.#dispatchUpdateUI([
-        [AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL, visible],
-      ]);
+    const showAllType =
+      type === "underline"
+        ? AnnotationEditorParamsType.UNDERLINE_SHOW_ALL
+        : AnnotationEditorParamsType.HIGHLIGHT_SHOW_ALL;
+    const state = this.#showAllStates?.get(showAllType) ?? true;
+    if (updateButton || state !== visible) {
+      this.#dispatchUpdateUI([[showAllType, visible]]);
     }
   }
 
@@ -2601,13 +2655,20 @@ class AnnotationEditorUIManager {
    * @param {AnnotationEditor} editor
    */
   #syncHighlightColorFromEditor(editor) {
-    if (editor.mode !== AnnotationEditorType.HIGHLIGHT || !editor.color) {
+    if (!editor.color) {
       return;
     }
     const color = editor.color.toUpperCase();
-    this.#setHighlightColorForNew(color);
-    if (!this.highlightColorNames?.has(color)) {
-      this.addRecentHighlightColor(color);
+    if (editor.mode === AnnotationEditorType.HIGHLIGHT) {
+      this.#setHighlightColorForNew(color);
+      if (!this.highlightColorNames?.has(color)) {
+        this.addRecentHighlightColor(color);
+      }
+    } else if (editor.mode === AnnotationEditorType.UNDERLINE) {
+      this.#setUnderlineColorForNew(color);
+      if (!this.highlightColorNames?.has(color)) {
+        this.addRecentHighlightColor(color);
+      }
     }
   }
 
@@ -2632,6 +2693,23 @@ class AnnotationEditorUIManager {
     return null;
   }
 
+  #getUnderlineColorForNewEditor() {
+    if (this.#underlineColorForNew) {
+      return this.#underlineColorForNew;
+    }
+    for (const editorType of this.#editorTypes) {
+      if (editorType._editorType !== AnnotationEditorType.UNDERLINE) {
+        continue;
+      }
+      for (const [type, value] of editorType.defaultPropertiesToUpdate) {
+        if (type === AnnotationEditorParamsType.UNDERLINE_COLOR) {
+          return value;
+        }
+      }
+    }
+    return this.#getHighlightColorForNewEditor();
+  }
+
   /**
    * Update the color that will be used for the next highlights.
    * @param {string} color
@@ -2654,6 +2732,26 @@ class AnnotationEditorUIManager {
     this.#mainHighlightColorPicker?.updateColor(color);
     this.#dispatchUpdateUI([
       [AnnotationEditorParamsType.HIGHLIGHT_COLOR, color],
+    ]);
+  }
+
+  #setUnderlineColorForNew(color) {
+    if (!color) {
+      return;
+    }
+    color = color.toUpperCase();
+    this.#underlineColorForNew = color;
+    for (const editorType of this.#editorTypes || []) {
+      if (editorType._editorType === AnnotationEditorType.UNDERLINE) {
+        editorType.updateDefaultParams(
+          AnnotationEditorParamsType.UNDERLINE_COLOR,
+          color
+        );
+        break;
+      }
+    }
+    this.#dispatchUpdateUI([
+      [AnnotationEditorParamsType.UNDERLINE_COLOR, color],
     ]);
   }
 

@@ -79,6 +79,7 @@ const AnnotationEditorType = {
   NONE: 0,
   FREETEXT: 3,
   HIGHLIGHT: 9,
+  UNDERLINE: 10,
   STAMP: 13,
   INK: 15,
   POPUP: 16,
@@ -101,6 +102,9 @@ const AnnotationEditorParamsType = {
   HIGHLIGHT_FREE: 33,
   HIGHLIGHT_SHOW_ALL: 34,
   HIGHLIGHT_STRAIGHT_LINE: 36,
+  UNDERLINE_COLOR: 37,
+  UNDERLINE_STYLE: 38,
+  UNDERLINE_SHOW_ALL: 39,
   DRAW_STEP: 41,
 };
 

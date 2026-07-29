@@ -3604,6 +3604,7 @@ class UnderlineAnnotationElement extends AnnotationElement {
       ignoreBorder: true,
       createQuadrilaterals: true,
     });
+    this.annotationEditorType = AnnotationEditorType.UNDERLINE;
   }
 
   render() {
@@ -3616,6 +3617,7 @@ class UnderlineAnnotationElement extends AnnotationElement {
     }
 
     this.container.classList.add("underlineAnnotation");
+    this._editOnDoubleClick();
 
     if (overlaidText) {
       const underline = document.createElement("u");
@@ -3635,6 +3637,7 @@ class SquigglyAnnotationElement extends AnnotationElement {
       ignoreBorder: true,
       createQuadrilaterals: true,
     });
+    this.annotationEditorType = AnnotationEditorType.UNDERLINE;
   }
 
   render() {
@@ -3647,6 +3650,7 @@ class SquigglyAnnotationElement extends AnnotationElement {
     }
 
     this.container.classList.add("squigglyAnnotation");
+    this._editOnDoubleClick();
 
     if (overlaidText) {
       const underline = document.createElement("u");
@@ -4427,5 +4431,7 @@ export {
   FreeTextAnnotationElement,
   HighlightAnnotationElement,
   InkAnnotationElement,
+  SquigglyAnnotationElement,
   StampAnnotationElement,
+  UnderlineAnnotationElement,
 };

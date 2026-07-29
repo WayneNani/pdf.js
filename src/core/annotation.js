@@ -415,6 +415,17 @@ class AnnotationFactory {
             );
           }
           break;
+        case AnnotationEditorType.UNDERLINE:
+          if (annotation.style === "wavy") {
+            promises.push(
+              SquigglyAnnotation.createNewAnnotation(xref, annotation, changes)
+            );
+          } else {
+            promises.push(
+              UnderlineAnnotation.createNewAnnotation(xref, annotation, changes)
+            );
+          }
+          break;
         case AnnotationEditorType.INK:
           promises.push(
             InkAnnotation.createNewAnnotation(xref, annotation, changes)
@@ -508,6 +519,31 @@ class AnnotationFactory {
           } else {
             promises.push(
               InkAnnotation.createNewPrintAnnotation(
+                annotationGlobals,
+                xref,
+                annotation,
+                {
+                  evaluatorOptions: options,
+                }
+              )
+            );
+          }
+          break;
+        case AnnotationEditorType.UNDERLINE:
+          if (annotation.style === "wavy") {
+            promises.push(
+              SquigglyAnnotation.createNewPrintAnnotation(
+                annotationGlobals,
+                xref,
+                annotation,
+                {
+                  evaluatorOptions: options,
+                }
+              )
+            );
+          } else {
+            promises.push(
+              UnderlineAnnotation.createNewPrintAnnotation(
                 annotationGlobals,
                 xref,
                 annotation,
@@ -5183,6 +5219,14 @@ class UnderlineAnnotation extends MarkupAnnotation {
     super(params);
 
     const { dict, xref } = params;
+    this.data.isEditable = !this.data.noHTML;
+    this.data.noHTML = false;
+    this.data.opacity = dict.get("CA") || 1;
+    const intent = dict.get("IT");
+    this.data.lineStyle =
+      intent instanceof Name && intent.name === "UnderlineDotted"
+        ? "dotted"
+        : "solid";
 
     const quadPoints = (this.data.quadPoints = getQuadPoints(dict, null));
     if (quadPoints) {
@@ -5190,11 +5234,13 @@ class UnderlineAnnotation extends MarkupAnnotation {
         // Default color is black
         const strokeColor = getPdfColorArray(this.color, [0, 0, 0]);
         const strokeAlpha = dict.get("CA");
+        const dash =
+          this.data.lineStyle === "dotted" ? "[1 1.5] 0 d" : "[] 0 d";
 
         // The values 0.571 and 1.3 below corresponds to what Acrobat is doing.
         this._setDefaultAppearance({
           xref,
-          extra: "[] 0 d 0.571 w",
+          extra: `${dash} 0.571 w`,
           strokeColor,
           strokeAlpha,
           pointsCallback: (buffer, points) => {
@@ -5215,6 +5261,93 @@ class UnderlineAnnotation extends MarkupAnnotation {
   get overlaysTextContent() {
     return true;
   }
+
+  static createNewDict(annotation, xref, { apRef, ap }) {
+    const {
+      color,
+      date,
+      oldAnnotation,
+      opacity,
+      rect,
+      rotation,
+      user,
+      quadPoints,
+      style,
+    } = annotation;
+    const underline = oldAnnotation || new Dict(xref);
+    underline.setIfNotExists("Type", Name.get("Annot"));
+    underline.setIfNotExists("Subtype", Name.get("Underline"));
+    underline.set(
+      oldAnnotation ? "M" : "CreationDate",
+      `D:${getModificationDate(date)}`
+    );
+    underline.setIfArray("Rect", rect);
+    underline.setIfNotExists("F", 4);
+    underline.setIfNotExists("Border", [0, 0, 0]);
+    underline.setIfNumber("Rotate", rotation);
+    underline.setIfArray("QuadPoints", quadPoints);
+    underline.setIfArray("C", getPdfColorArray(color));
+    underline.setIfNumber("CA", opacity);
+    underline.setIfDefined("T", stringToAsciiOrUTF16BE(user));
+    underline.setIfName(
+      "IT",
+      style === "dotted" ? "UnderlineDotted" : "UnderlineSolid"
+    );
+
+    if (apRef || ap) {
+      const n = new Dict(xref);
+      underline.set("AP", n);
+      n.set("N", apRef || ap);
+    }
+
+    return underline;
+  }
+
+  static async createNewAppearanceStream(annotation, xref, params) {
+    const { color, rect, quadPoints, opacity, style } = annotation;
+    if (!color || !quadPoints) {
+      return null;
+    }
+
+    const dash = style === "dotted" ? "[1 1.5] 0 d" : "[] 0 d";
+    const appearanceBuffer = [
+      `${getPdfColor(color, /* isFill */ false)}`,
+      `${dash} 0.571 w`,
+    ];
+    if (opacity !== 1) {
+      appearanceBuffer.unshift("/R0 gs");
+    }
+
+    for (let i = 0; i < quadPoints.length; i += 8) {
+      const y = quadPoints[i + 5] + 1.3;
+      appearanceBuffer.push(
+        `${numberToString(quadPoints[i + 4])} ${numberToString(y)} m`,
+        `${numberToString(quadPoints[i + 6])} ${numberToString(y)} l`,
+        "S"
+      );
+    }
+    const appearance = appearanceBuffer.join("\n");
+
+    const appearanceStreamDict = new Dict(xref);
+    appearanceStreamDict.set("FormType", 1);
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
+    appearanceStreamDict.set("BBox", rect);
+    appearanceStreamDict.set("Length", appearance.length);
+
+    if (opacity !== 1) {
+      const resources = new Dict(xref);
+      const extGState = new Dict(xref);
+      resources.set("ExtGState", extGState);
+      appearanceStreamDict.set("Resources", resources);
+      const r0 = new Dict(xref);
+      extGState.set("R0", r0);
+      r0.set("CA", opacity);
+      r0.setIfName("Type", "ExtGState");
+    }
+
+    return new StringStream(appearance, appearanceStreamDict);
+  }
 }
 
 class SquigglyAnnotation extends MarkupAnnotation {
@@ -5222,6 +5355,10 @@ class SquigglyAnnotation extends MarkupAnnotation {
     super(params);
 
     const { dict, xref } = params;
+    this.data.isEditable = !this.data.noHTML;
+    this.data.noHTML = false;
+    this.data.opacity = dict.get("CA") || 1;
+    this.data.lineStyle = "wavy";
 
     const quadPoints = (this.data.quadPoints = getQuadPoints(dict, null));
     if (quadPoints) {
@@ -5259,6 +5396,94 @@ class SquigglyAnnotation extends MarkupAnnotation {
 
   get overlaysTextContent() {
     return true;
+  }
+
+  static createNewDict(annotation, xref, { apRef, ap }) {
+    const {
+      color,
+      date,
+      oldAnnotation,
+      opacity,
+      rect,
+      rotation,
+      user,
+      quadPoints,
+    } = annotation;
+    const squiggly = oldAnnotation || new Dict(xref);
+    squiggly.setIfNotExists("Type", Name.get("Annot"));
+    squiggly.setIfNotExists("Subtype", Name.get("Squiggly"));
+    squiggly.set(
+      oldAnnotation ? "M" : "CreationDate",
+      `D:${getModificationDate(date)}`
+    );
+    squiggly.setIfArray("Rect", rect);
+    squiggly.setIfNotExists("F", 4);
+    squiggly.setIfNotExists("Border", [0, 0, 0]);
+    squiggly.setIfNumber("Rotate", rotation);
+    squiggly.setIfArray("QuadPoints", quadPoints);
+    squiggly.setIfArray("C", getPdfColorArray(color));
+    squiggly.setIfNumber("CA", opacity);
+    squiggly.setIfDefined("T", stringToAsciiOrUTF16BE(user));
+
+    if (apRef || ap) {
+      const n = new Dict(xref);
+      squiggly.set("AP", n);
+      n.set("N", apRef || ap);
+    }
+
+    return squiggly;
+  }
+
+  static async createNewAppearanceStream(annotation, xref, params) {
+    const { color, rect, quadPoints, opacity } = annotation;
+    if (!color || !quadPoints) {
+      return null;
+    }
+
+    const appearanceBuffer = [`${getPdfColor(color, /* isFill */ false)}`, "[] 0 d 1 w"];
+    if (opacity !== 1) {
+      appearanceBuffer.unshift("/R0 gs");
+    }
+
+    for (let i = 0; i < quadPoints.length; i += 8) {
+      const top = quadPoints[i + 1];
+      const bottom = quadPoints[i + 5];
+      const dy = (top - bottom) / 6;
+      let shift = dy;
+      let x = quadPoints[i + 4];
+      const y = bottom;
+      const xEnd = quadPoints[i + 6];
+      appearanceBuffer.push(`${numberToString(x)} ${numberToString(y + shift)} m`);
+      do {
+        x += 2;
+        shift = shift === 0 ? dy : 0;
+        appearanceBuffer.push(
+          `${numberToString(x)} ${numberToString(y + shift)} l`
+        );
+      } while (x < xEnd);
+      appearanceBuffer.push("S");
+    }
+    const appearance = appearanceBuffer.join("\n");
+
+    const appearanceStreamDict = new Dict(xref);
+    appearanceStreamDict.set("FormType", 1);
+    appearanceStreamDict.setIfName("Subtype", "Form");
+    appearanceStreamDict.setIfName("Type", "XObject");
+    appearanceStreamDict.set("BBox", rect);
+    appearanceStreamDict.set("Length", appearance.length);
+
+    if (opacity !== 1) {
+      const resources = new Dict(xref);
+      const extGState = new Dict(xref);
+      resources.set("ExtGState", extGState);
+      appearanceStreamDict.set("Resources", resources);
+      const r0 = new Dict(xref);
+      extGState.set("R0", r0);
+      r0.set("CA", opacity);
+      r0.setIfName("Type", "ExtGState");
+    }
+
+    return new StringStream(appearance, appearanceStreamDict);
   }
 }
 

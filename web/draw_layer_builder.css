@@ -22,7 +22,8 @@
     }
 
     &.highlight,
-    &.highlightOutline {
+    &.highlightOutline,
+    &.underline {
       &[data-main-rotation="90"] {
         mask,
         use:not(.clip, .mask) {
@@ -75,6 +76,12 @@
       &:not(.free) {
         fill-rule: evenodd;
       }
+    }
+
+    &.underline {
+      position: absolute;
+      mix-blend-mode: normal;
+      fill: none;
     }
 
     &.highlightOutline {
