@@ -2438,7 +2438,16 @@ gulp.task("lint-chmod", function (done) {
   console.log("\n### Checking executable bit on tracked and untracked files");
 
   // Files allowed to keep the executable bit (shebang scripts).
-  const EXECUTABLE_FILES = new Set(["test/chromium/test-telemetry.js"]);
+  const EXECUTABLE_FILES = new Set([
+    "test/chromium/test-telemetry.js",
+    // Beads-managed git hook templates (#!/usr/bin/env sh); must stay +x so
+    // `bd` can install them into .git/hooks without a separate chmod step.
+    ".beads/hooks/post-checkout",
+    ".beads/hooks/post-merge",
+    ".beads/hooks/pre-commit",
+    ".beads/hooks/pre-push",
+    ".beads/hooks/prepare-commit-msg",
+  ]);
 
   // Cover untracked-but-not-ignored files too: a `gulp lint` run before
   // `git add` would otherwise miss any 0755 file the developer just created.
