@@ -226,10 +226,12 @@ class UnderlineEditor extends AnnotationEditor {
       // Above the box bottom so the stroke sits under the glyphs.
       const yLine = y + height - Math.min(0.008, height * 0.15);
       if (this.#style === "wavy") {
-        // Spellcheck-like sinusoidal curlies: quadratic arcs, lower
-        // amplitude and denser wavelength than the old sawtooth path.
-        const amp = Math.min(0.0028, height * 0.055);
-        const halfPeriod = MathClamp(height * 0.16, 0.004, 0.007);
+        // Spellcheck-like sinusoidal curlies: quadratic arcs (soft, not
+        // sawtooth). Control-point offset is ~2× the rendered peak height
+        // of a Q mid-arc — keep amp high enough that waves stay clearly
+        // distinct from solid under the non-scaling stroke.
+        const amp = Math.min(0.007, height * 0.14);
+        const halfPeriod = MathClamp(height * 0.1, 0.003, 0.005);
         const [sx, sy] = toLocal(x, yLine);
         parts.push(`M ${sx} ${sy}`);
         let cx = x;
