@@ -221,7 +221,11 @@ class ColorPicker {
         const color = input.value.toUpperCase();
         this.#uiManager.addRecentHighlightColor(color);
         this.updateColor(color);
-        if (!this.#isMainColorPicker) {
+        if (this.#isMainColorPicker) {
+          // Committing a custom color from the params toolbar closes the panel
+          // but leaves highlight/underline editing mode active.
+          this.#closeMainParamsToolbar();
+        } else {
           this.hideDropdown();
         }
       },
@@ -239,11 +243,24 @@ class ColorPicker {
       value: color,
     });
     this.updateColor(color);
-    // The main params-toolbar palette stays open; editor dropdowns close after
-    // a palette pick. Keep the free-form color input open while scrubbing.
-    if (!this.#isMainColorPicker && event.target !== this.#customColorInput) {
+    // Editor-attached dropdowns close after a palette pick. Keep the free-form
+    // color input open while scrubbing. A palette pick from the main params
+    // toolbar closes that panel without leaving editing mode.
+    if (event.target === this.#customColorInput) {
+      return;
+    }
+    if (this.#isMainColorPicker) {
+      this.#closeMainParamsToolbar();
+    } else {
       this.hideDropdown();
     }
+  }
+
+  #closeMainParamsToolbar() {
+    this.#eventBus.dispatch("annotationeditorparamstoolbarclose", {
+      source: this,
+      type: this.#colorParamType,
+    });
   }
 
   _colorSelectFromKeyboard(event) {

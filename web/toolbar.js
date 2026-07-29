@@ -298,6 +298,11 @@ class Toolbar {
       internalOpt
     );
     eventBus.on(
+      "annotationeditorparamstoolbarclose",
+      this.#collapseActiveEditorParamsToolbar.bind(this),
+      internalOpt
+    );
+    eventBus.on(
       "showannotationeditorui",
       ({ mode }) => {
         switch (mode) {
@@ -352,6 +357,35 @@ class Toolbar {
         },
         internalOpt
       );
+    }
+  }
+
+  #collapseActiveEditorParamsToolbar() {
+    // Hide the highlight/underline params doorhanger after a color (or
+    // underline style) pick without leaving editing mode — the tool button
+    // stays toggled so the user can keep annotating.
+    const {
+      editorHighlightButton,
+      editorHighlightParamsToolbar,
+      editorUnderlineButton,
+      editorUnderlineParamsToolbar,
+    } = this.#opts;
+
+    if (
+      editorHighlightButton?.classList.contains("toggled") &&
+      editorHighlightParamsToolbar &&
+      !editorHighlightParamsToolbar.classList.contains("hidden")
+    ) {
+      editorHighlightParamsToolbar.classList.add("hidden");
+      editorHighlightButton.setAttribute("aria-expanded", "false");
+    }
+    if (
+      editorUnderlineButton?.classList.contains("toggled") &&
+      editorUnderlineParamsToolbar &&
+      !editorUnderlineParamsToolbar.classList.contains("hidden")
+    ) {
+      editorUnderlineParamsToolbar.classList.add("hidden");
+      editorUnderlineButton.setAttribute("aria-expanded", "false");
     }
   }
 

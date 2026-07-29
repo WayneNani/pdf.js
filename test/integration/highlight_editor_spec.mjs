@@ -2630,6 +2630,129 @@ describe("Highlight Editor", () => {
     });
   });
 
+  describe("Highlight params toolbar closes after color select", () => {
+    let pages;
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        ".annotationEditorLayer",
+        null,
+        null,
+        { highlightEditorColors: "red=#AB0000,blue=#0000AB" }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must close the params toolbar while keeping highlight mode active", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToHighlight(page);
+          await page.waitForSelector(
+            "#editorHighlightParamsToolbar:not(.hidden)"
+          );
+
+          await page.click(
+            "#editorHighlightColorPicker button[title = 'Blue']"
+          );
+
+          await page.waitForSelector("#editorHighlightParamsToolbar.hidden");
+          expect(
+            await page.$eval("#editorHighlightButton", el =>
+              el.classList.contains("toggled")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          expect(
+            await page.$eval("#editorHighlightButton", el =>
+              el.getAttribute("aria-expanded")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toEqual("false");
+          await page.waitForSelector(".annotationEditorLayer.highlightEditing");
+
+          // Mode stays active — further highlighting still works.
+          await highlightSpan(page, 1, "Abstract");
+          await page.waitForSelector(
+            `.page[data-page-number = "1"] .canvasWrapper > svg.highlight[fill = "#0000AB"]`
+          );
+        })
+      );
+    });
+  });
+
+  describe("Underline params toolbar closes after color or style select", () => {
+    let pages;
+    const switchToUnderline = switchToEditor.bind(null, "Underline");
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        ".annotationEditorLayer",
+        null,
+        null,
+        { highlightEditorColors: "red=#AB0000,blue=#0000AB" }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must close the params toolbar after color select while keeping underline mode", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToUnderline(page);
+          await page.waitForSelector(
+            "#editorUnderlineParamsToolbar:not(.hidden)"
+          );
+
+          await page.click(
+            "#editorUnderlineColorPicker button[title = 'Blue']"
+          );
+
+          await page.waitForSelector("#editorUnderlineParamsToolbar.hidden");
+          expect(
+            await page.$eval("#editorUnderlineButton", el =>
+              el.classList.contains("toggled")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          await page.waitForSelector(".annotationEditorLayer.underlineEditing");
+        })
+      );
+    });
+
+    it("must close the params toolbar after style select while keeping underline mode", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToUnderline(page);
+          await page.waitForSelector(
+            "#editorUnderlineParamsToolbar:not(.hidden)"
+          );
+
+          await page.click("#editorUnderlineStyleWavy");
+
+          await page.waitForSelector("#editorUnderlineParamsToolbar.hidden");
+          expect(
+            await page.$eval("#editorUnderlineButton", el =>
+              el.classList.contains("toggled")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          await page.waitForSelector(".annotationEditorLayer.underlineEditing");
+        })
+      );
+    });
+  });
+
   describe("Highlight must change their color when selected", () => {
     let pages;
 
@@ -2833,6 +2956,10 @@ describe("Highlight Editor", () => {
           const editorSelector0 = getEditorSelector(0);
           await page.waitForSelector(editorSelector0);
 
+          // Committing the custom color closes the params toolbar; re-open it
+          // (toggle tool off/on) before picking another palette color.
+          await switchToHighlight(page, /* disable */ true);
+          await switchToHighlight(page);
           await page.click("#editorHighlightColorPicker button[title = 'Red']");
           await highlightSpan(page, 1, "Languages");
           const editorSelector1 = getEditorSelector(1);
@@ -3112,7 +3239,7 @@ describe("Highlight Editor", () => {
     });
   });
 
-  describe("Shortcut h with text selection", () => {
+  describe("Shortcut h/u for highlight and underline tools", () => {
     let pages;
 
     beforeEach(async () => {
@@ -3166,15 +3293,41 @@ describe("Highlight Editor", () => {
           });
           expect(usedColor).withContext(`In ${browserName}`).toEqual("#00AB00");
 
-          // Without a selection, 'h' still activates the Hand tool.
+          // Without a selection, 'h' activates the Highlight tool (not Hand).
           await page.mouse.click(rect.x + rect.width + 10, y);
           await page.waitForFunction(() => document.getSelection().isCollapsed);
+          await switchToHighlight(page, /* disable = */ true);
           await page.keyboard.press("h");
+          await page.waitForSelector(".annotationEditorLayer.highlightEditing");
+        })
+      );
+    });
+
+    it("must activate underline mode and underline a selection with u", async () => {
+      const switchToUnderline = switchToEditor.bind(null, "Underline");
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          const rect = await getSpanRectFromText(page, 1, "Abstract");
+          const x = rect.x + rect.width / 2;
+          const y = rect.y + rect.height / 2;
+
+          // Without a selection, 'u' activates the Underline tool.
+          await page.keyboard.press("u");
+          await page.waitForSelector(".annotationEditorLayer.underlineEditing");
+          await switchToUnderline(page, /* disable = */ true);
+
+          await page.mouse.click(x, y, { count: 2, delay: 100 });
           await page.waitForFunction(
-            () =>
-              window.PDFViewerApplication.pdfCursorTools.activeTool ===
-              /* CursorTool.HAND = */ 1
+            () => !document.getSelection().isCollapsed
           );
+
+          await page.keyboard.press("u");
+          await page.waitForSelector(getEditorSelector(0));
+          const hasUnderline = await page.evaluate(
+            sel => !!document.querySelector(sel),
+            `${getEditorSelector(0)}.underlineEditor`
+          );
+          expect(hasUnderline).withContext(`In ${browserName}`).toBeTrue();
         })
       );
     });

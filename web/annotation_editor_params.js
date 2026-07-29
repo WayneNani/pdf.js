@@ -210,6 +210,12 @@ class AnnotationEditorParams {
       button.addEventListener("click", function () {
         setUnderlineStyleUI(this.dataset.style);
         dispatchEvent("UNDERLINE_STYLE", this.dataset.style);
+        // Close the underline params panel after a style pick, same as color,
+        // while leaving underline editing mode active.
+        eventBus.dispatch("annotationeditorparamstoolbarclose", {
+          source: this,
+          type: AnnotationEditorParamsType.UNDERLINE_STYLE,
+        });
       });
     }
     editorUnderlineShowAll?.addEventListener("click", function () {
