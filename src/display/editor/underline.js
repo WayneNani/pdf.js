@@ -27,6 +27,7 @@ import {
 import { AnnotationEditor } from "./editor.js";
 import { ColorPicker } from "./color_picker.js";
 import { HighlightOutliner } from "./drawers/highlight.js";
+import { MathClamp } from "../../shared/math_clamp.js";
 
 /**
  * Editor for underline / squiggly text-markup annotations.
@@ -228,7 +229,7 @@ class UnderlineEditor extends AnnotationEditor {
         // Spellcheck-like sinusoidal curlies: quadratic arcs, lower
         // amplitude and denser wavelength than the old sawtooth path.
         const amp = Math.min(0.0028, height * 0.055);
-        const halfPeriod = Math.max(0.004, Math.min(0.007, height * 0.16));
+        const halfPeriod = MathClamp(height * 0.16, 0.004, 0.007);
         const [sx, sy] = toLocal(x, yLine);
         parts.push(`M ${sx} ${sy}`);
         let cx = x;
