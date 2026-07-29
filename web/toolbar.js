@@ -231,6 +231,23 @@ class Toolbar {
     // The buttons within the toolbar.
     for (const { element, eventName, eventDetails, telemetry } of buttons) {
       element.addEventListener("click", evt => {
+        // Tool active but params collapsed (e.g. after h/u shortcut or a
+        // color pick): an explicit toolbar click re-opens the doorhanger
+        // instead of leaving the editing mode.
+        if (
+          this.#expandCollapsedEditorParams(
+            element,
+            editorHighlightButton,
+            this.#opts.editorHighlightParamsToolbar
+          ) ||
+          this.#expandCollapsedEditorParams(
+            element,
+            editorUnderlineButton,
+            this.#opts.editorUnderlineParamsToolbar
+          )
+        ) {
+          return;
+        }
         if (eventName !== null) {
           eventBus.dispatch(eventName, {
             source: this,
@@ -360,6 +377,27 @@ class Toolbar {
     }
   }
 
+  #expandCollapsedEditorParams(clicked, button, toolbar) {
+    if (
+      clicked === button &&
+      button?.classList.contains("toggled") &&
+      toolbar?.classList.contains("hidden")
+    ) {
+      toggleExpandedBtn(button, true, toolbar);
+      return true;
+    }
+    return false;
+  }
+
+  #setEditorModeButton(button, toolbar, active, expand) {
+    if (!button) {
+      return;
+    }
+    button.classList.toggle("toggled", active);
+    button.setAttribute("aria-expanded", expand);
+    toolbar?.classList.toggle("hidden", !expand);
+  }
+
   #collapseActiveEditorParamsToolbar() {
     // Hide the highlight/underline params doorhanger after a color (or
     // underline style) pick without leaving editing mode — the tool button
@@ -389,7 +427,7 @@ class Toolbar {
     }
   }
 
-  #editorModeChanged({ mode }) {
+  #editorModeChanged({ mode, isFromKeyboard = false }) {
     const {
       editorCommentButton,
       editorCommentParamsToolbar,
@@ -417,18 +455,20 @@ class Toolbar {
       mode === AnnotationEditorType.FREETEXT,
       editorFreeTextParamsToolbar
     );
-    toggleExpandedBtn(
+    // Keyboard shortcuts (h/u) switch tools silently: button toggled, params
+    // doorhanger stays closed until an explicit toolbar click expands it.
+    this.#setEditorModeButton(
       editorHighlightButton,
+      editorHighlightParamsToolbar,
       mode === AnnotationEditorType.HIGHLIGHT,
-      editorHighlightParamsToolbar
+      mode === AnnotationEditorType.HIGHLIGHT && !isFromKeyboard
     );
-    if (editorUnderlineButton) {
-      toggleExpandedBtn(
-        editorUnderlineButton,
-        mode === AnnotationEditorType.UNDERLINE,
-        editorUnderlineParamsToolbar
-      );
-    }
+    this.#setEditorModeButton(
+      editorUnderlineButton,
+      editorUnderlineParamsToolbar,
+      mode === AnnotationEditorType.UNDERLINE,
+      mode === AnnotationEditorType.UNDERLINE && !isFromKeyboard
+    );
     toggleExpandedBtn(
       editorInkButton,
       mode === AnnotationEditorType.INK,

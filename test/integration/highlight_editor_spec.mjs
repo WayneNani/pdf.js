@@ -3293,11 +3293,47 @@ describe("Highlight Editor", () => {
           });
           expect(usedColor).withContext(`In ${browserName}`).toEqual("#00AB00");
 
-          // Without a selection, 'h' activates the Highlight tool (not Hand).
+          // Without a selection, 'h' activates the Highlight tool (not Hand)
+          // without opening the params doorhanger.
           await page.mouse.click(rect.x + rect.width + 10, y);
           await page.waitForFunction(() => document.getSelection().isCollapsed);
           await switchToHighlight(page, /* disable = */ true);
           await page.keyboard.press("h");
+          await page.waitForSelector(".annotationEditorLayer.highlightEditing");
+          expect(
+            await page.$eval("#editorHighlightButton", el =>
+              el.classList.contains("toggled")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          expect(
+            await page.$eval("#editorHighlightParamsToolbar", el =>
+              el.classList.contains("hidden")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          expect(
+            await page.$eval("#editorHighlightButton", el =>
+              el.getAttribute("aria-expanded")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toEqual("false");
+
+          // Explicit toolbar click expands the params doorhanger.
+          await page.click("#editorHighlightButton");
+          await page.waitForSelector(
+            "#editorHighlightParamsToolbar:not(.hidden)"
+          );
+          expect(
+            await page.$eval("#editorHighlightButton", el =>
+              el.classList.contains("toggled")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
           await page.waitForSelector(".annotationEditorLayer.highlightEditing");
         })
       );
@@ -3311,9 +3347,37 @@ describe("Highlight Editor", () => {
           const x = rect.x + rect.width / 2;
           const y = rect.y + rect.height / 2;
 
-          // Without a selection, 'u' activates the Underline tool.
+          // Without a selection, 'u' activates the Underline tool silently.
           await page.keyboard.press("u");
           await page.waitForSelector(".annotationEditorLayer.underlineEditing");
+          expect(
+            await page.$eval("#editorUnderlineButton", el =>
+              el.classList.contains("toggled")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          expect(
+            await page.$eval("#editorUnderlineParamsToolbar", el =>
+              el.classList.contains("hidden")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toBeTrue();
+          expect(
+            await page.$eval("#editorUnderlineButton", el =>
+              el.getAttribute("aria-expanded")
+            )
+          )
+            .withContext(`In ${browserName}`)
+            .toEqual("false");
+
+          // Explicit toolbar click expands the params doorhanger.
+          await page.click("#editorUnderlineButton");
+          await page.waitForSelector(
+            "#editorUnderlineParamsToolbar:not(.hidden)"
+          );
+
           await switchToUnderline(page, /* disable = */ true);
 
           await page.mouse.click(x, y, { count: 2, delay: 100 });

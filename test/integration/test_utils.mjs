@@ -938,7 +938,30 @@ async function switchToEditor(name, page, disable = false) {
       { once: true }
     );
   });
-  await page.click(`#editor${name}Button`);
+  const buttonSelector = `#editor${name}Button`;
+  const paramsSelector = `#editor${name}ParamsToolbar`;
+  if (disable) {
+    // Highlight/Underline keep the tool toggled after a silent keyboard
+    // activate or a params color pick; the first toolbar click only
+    // re-expands the doorhanger, so leave-mode needs a second click.
+    const needsExtraClick = await page.evaluate(
+      (btnSel, paramsSel) => {
+        const button = document.querySelector(btnSel);
+        const toolbar = document.querySelector(paramsSel);
+        return (
+          !!button?.classList.contains("toggled") &&
+          !!toolbar?.classList.contains("hidden")
+        );
+      },
+      buttonSelector,
+      paramsSelector
+    );
+    if (needsExtraClick) {
+      await page.click(buttonSelector);
+      await page.waitForSelector(`${paramsSelector}:not(.hidden)`);
+    }
+  }
+  await page.click(buttonSelector);
   name = name.toLowerCase();
   await page.waitForSelector(
     ".annotationEditorLayer" +

@@ -2665,6 +2665,7 @@ class PDFViewer {
       eventBus.dispatch("annotationeditormodechanged", {
         source: this,
         mode,
+        isFromKeyboard,
       });
     };
 
