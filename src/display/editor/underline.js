@@ -20,17 +20,17 @@ import {
   Util,
 } from "../../shared/util.js";
 import { bindEvents, KeyboardManager } from "./tools.js";
-import { HighlightOutliner } from "./drawers/highlight.js";
 import {
   SquigglyAnnotationElement,
   UnderlineAnnotationElement,
 } from "../annotation_layer.js";
 import { AnnotationEditor } from "./editor.js";
 import { ColorPicker } from "./color_picker.js";
+import { HighlightOutliner } from "./drawers/highlight.js";
 
 /**
  * Editor for underline / squiggly text-markup annotations.
- * Styles: solid → PDF Underline, wavy → Squiggly, dotted → Underline + dashed AP.
+ * solid→Underline, wavy→Squiggly, dotted→Underline+dashed AP.
  */
 class UnderlineEditor extends AnnotationEditor {
   #anchorNode = null;
@@ -175,13 +175,18 @@ class UnderlineEditor extends AnnotationEditor {
       const yLine = y + height - Math.min(0.008, height * 0.15);
       if (this.#style === "wavy") {
         const amp = Math.min(0.006, height * 0.12);
-        const step = Math.max(0.008, width / Math.max(8, Math.round(width / 0.012)));
+        const step = Math.max(
+          0.008,
+          width / Math.max(8, Math.round(width / 0.012))
+        );
         parts.push(`M ${x} ${yLine}`);
         let cx = x;
         let up = true;
         while (cx < x + width - step / 2) {
           cx += step;
-          parts.push(`L ${Math.min(cx, x + width)} ${yLine + (up ? -amp : amp)}`);
+          parts.push(
+            `L ${Math.min(cx, x + width)} ${yLine + (up ? -amp : amp)}`
+          );
           up = !up;
         }
         parts.push(`L ${x + width} ${yLine}`);
