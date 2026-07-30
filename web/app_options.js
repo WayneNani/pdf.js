@@ -348,7 +348,8 @@ const defaultOptions = new Map([
     "enableComment",
     {
       /** @type {boolean} */
-      value: typeof PDFJSDev === "undefined",
+      value:
+        typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING || GENERIC"),
       kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
     },
   ],
@@ -461,7 +462,8 @@ const defaultOptions = new Map([
     "enableSignatureEditor",
     {
       /** @type {boolean} */
-      value: typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING"),
+      value:
+        typeof PDFJSDev === "undefined" || PDFJSDev.test("TESTING || GENERIC"),
       kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
     },
   ],
