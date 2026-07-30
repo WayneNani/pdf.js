@@ -264,7 +264,9 @@ class UnderlineEditor extends AnnotationEditor {
   static initialize(l10n, uiManager) {
     AnnotationEditor.initialize(l10n, uiManager);
     UnderlineEditor._defaultColor ||=
-      uiManager.highlightColors?.values().next().value || "#ff0000";
+      uiManager.underlineColors?.values().next().value ||
+      uiManager.highlightColors?.values().next().value ||
+      "#ff0000";
   }
 
   /** @inheritdoc */
@@ -402,7 +404,7 @@ class UnderlineEditor extends AnnotationEditor {
 
   /** @inheritdoc */
   get toolbarButtons() {
-    if (this._uiManager.highlightColors) {
+    if (this._uiManager.underlineColors || this._uiManager.highlightColors) {
       const colorPicker = (this.#colorPicker = new ColorPicker({
         editor: this,
       }));

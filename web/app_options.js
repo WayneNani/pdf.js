@@ -553,6 +553,19 @@ const defaultOptions = new Map([
     },
   ],
   [
+    "underlineEditorColors",
+    {
+      /** @type {string} */
+      // Opaque stroke colors (highlight palette is intentionally pale).
+      value:
+        "yellow=#D4A000,green=#0B8F55,blue=#0077CC,pink=#D81B60,red=#C62828," +
+        "orange=#E65100,purple=#7B1FA2,cyan=#00838F,gray=#616161,brown=#6D4C41," +
+        "yellow_HCM=#FFD600,green_HCM=#00C853,blue_HCM=#00B0FF,pink_HCM=#FF4081,red_HCM=#FF1744," +
+        "orange_HCM=#FF6D00,purple_HCM=#E040FB,cyan_HCM=#00E5FF,gray_HCM=#B0BEC5,brown_HCM=#A1887F",
+      kind: OptionKind.VIEWER + OptionKind.PREFERENCE,
+    },
+  ],
+  [
     "historyUpdateUrl",
     {
       /** @type {boolean} */

@@ -792,6 +792,8 @@ class AnnotationEditorUIManager {
 
   #highlightColors = null;
 
+  #underlineColors = null;
+
   #highlightColorForNew = null;
 
   #underlineColorForNew = null;
@@ -1003,6 +1005,7 @@ class AnnotationEditorUIManager {
     pdfDocument,
     pageColors,
     highlightColors,
+    underlineColors,
     enableHighlightFloatingButton,
     enableUpdatedAddImage,
     enableNewAltTextWhenAddingImage,
@@ -1060,6 +1063,7 @@ class AnnotationEditorUIManager {
     this.#filterFactory = pdfDocument.filterFactory;
     this.#pageColors = pageColors;
     this.#highlightColors = highlightColors || null;
+    this.#underlineColors = underlineColors || null;
     this.#enableHighlightFloatingButton = enableHighlightFloatingButton;
     this.#enableUpdatedAddImage = enableUpdatedAddImage;
     this.#enableNewAltTextWhenAddingImage = enableNewAltTextWhenAddingImage;
@@ -1201,16 +1205,71 @@ class AnnotationEditorUIManager {
     );
   }
 
-  getNonHCMColor(color) {
-    if (!this._highlightColors) {
-      return color;
+  get _underlineColors() {
+    return shadow(
+      this,
+      "_underlineColors",
+      this.#underlineColors
+        ? new Map(
+            this.#underlineColors.split(",").map(pair => {
+              pair = pair.split("=").map(x => x.trim());
+              pair[1] = pair[1].toUpperCase();
+              return pair;
+            })
+          )
+        : null
+    );
+  }
+
+  get underlineColors() {
+    const { _underlineColors } = this;
+    if (!_underlineColors) {
+      // Fail-safe: reuse highlight palette when underline pref is unset.
+      return shadow(this, "underlineColors", this.highlightColors);
     }
-    const colorName = this.highlightColorNames.get(color);
-    return this._highlightColors.get(colorName) || color;
+    const map = new Map();
+    const hasHCM = !!this.#pageColors;
+    for (const [name, color] of _underlineColors) {
+      const isNameForHCM = name.endsWith("_HCM");
+      if (hasHCM && isNameForHCM) {
+        map.set(name.replace("_HCM", ""), color);
+        continue;
+      }
+      if (!hasHCM && !isNameForHCM) {
+        map.set(name, color);
+      }
+    }
+    return shadow(this, "underlineColors", map);
+  }
+
+  get underlineColorNames() {
+    return shadow(
+      this,
+      "underlineColorNames",
+      this.underlineColors
+        ? new Map(Array.from(this.underlineColors, e => e.reverse()))
+        : null
+    );
+  }
+
+  getNonHCMColor(color) {
+    const highlightName = this.highlightColorNames?.get(color);
+    if (highlightName && this._highlightColors) {
+      return this._highlightColors.get(highlightName) || color;
+    }
+    const underlineName = this.underlineColorNames?.get(color);
+    if (underlineName && this._underlineColors) {
+      return this._underlineColors.get(underlineName) || color;
+    }
+    return color;
   }
 
   getNonHCMColorName(color) {
-    return this.highlightColorNames.get(color) || color;
+    return (
+      this.highlightColorNames?.get(color) ||
+      this.underlineColorNames?.get(color) ||
+      color
+    );
   }
 
   /**
@@ -1229,7 +1288,10 @@ class AnnotationEditorUIManager {
    */
   addRecentHighlightColor(color) {
     color = color.toUpperCase();
-    if (this.highlightColorNames?.has(color)) {
+    if (
+      this.highlightColorNames?.has(color) ||
+      this.underlineColorNames?.has(color)
+    ) {
       return;
     }
     const recent = this.#recentHighlightColors;
@@ -2684,7 +2746,7 @@ class AnnotationEditorUIManager {
       if (editor.style) {
         this.#setUnderlineStyleForNew(editor.style);
       }
-      if (!this.highlightColorNames?.has(color)) {
+      if (!this.underlineColorNames?.has(color)) {
         this.addRecentHighlightColor(color);
       }
     }

@@ -394,6 +394,7 @@ const PDFViewerApplication = {
         enableSplitMerge: x => x === "true",
         enableUpdatedAddImage: x => x === "true",
         highlightEditorColors: x => x,
+        underlineEditorColors: x => x,
         keyboardShortcuts: x => x,
         imagesRightClickMinSize: x => parseInt(x, 10),
         maxCanvasPixels: x => parseInt(x, 10),
@@ -647,6 +648,7 @@ const PDFViewerApplication = {
       annotationMode: AppOptions.get("annotationMode"),
       annotationEditorMode,
       annotationEditorHighlightColors: AppOptions.get("highlightEditorColors"),
+      annotationEditorUnderlineColors: AppOptions.get("underlineEditorColors"),
       enableHighlightFloatingButton: AppOptions.get(
         "enableHighlightFloatingButton"
       ),

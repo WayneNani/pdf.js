@@ -2696,7 +2696,10 @@ describe("Highlight Editor", () => {
         ".annotationEditorLayer",
         null,
         null,
-        { highlightEditorColors: "red=#AB0000,blue=#0000AB" }
+        {
+          highlightEditorColors: "red=#AB0000,blue=#0000AB",
+          underlineEditorColors: "red=#AB0000,blue=#0000AB",
+        }
       );
     });
 
@@ -2762,7 +2765,10 @@ describe("Highlight Editor", () => {
         ".annotationEditorLayer",
         null,
         null,
-        { highlightEditorColors: "red=#AB0000,blue=#0000AB" }
+        {
+          highlightEditorColors: "red=#AB0000,blue=#0000AB",
+          underlineEditorColors: "red=#AB0000,blue=#0000AB",
+        }
       );
     });
 
@@ -2809,6 +2815,72 @@ describe("Highlight Editor", () => {
           expect(serialized.every(e => e.style === "wavy"))
             .withContext(`In ${browserName}`)
             .toBeTrue();
+        })
+      );
+    });
+  });
+
+  describe("Underline uses its own opaque color palette", () => {
+    let pages;
+    const switchToUnderline = switchToEditor.bind(null, "Underline");
+
+    beforeEach(async () => {
+      pages = await loadAndWait(
+        "tracemonkey.pdf",
+        ".annotationEditorLayer",
+        null,
+        null,
+        {
+          highlightEditorColors: "yellow=#FFFF98,pink=#FFCBE6",
+          underlineEditorColors: "yellow=#D4A000,pink=#D81B60",
+        }
+      );
+    });
+
+    afterEach(async () => {
+      await closePages(pages);
+    });
+
+    it("must use underlineEditorColors for yellow stroke, not highlight yellow", async () => {
+      await Promise.all(
+        pages.map(async ([browserName, page]) => {
+          await switchToUnderline(page);
+          await page.waitForSelector(
+            "#editorUnderlineParamsToolbar:not(.hidden)"
+          );
+
+          const underlineYellow = await page.$eval(
+            "#editorUnderlineColorPicker button[title = 'Yellow'] .swatch",
+            el => getComputedStyle(el).backgroundColor
+          );
+          expect(underlineYellow)
+            .withContext(`In ${browserName}`)
+            .toEqual("rgb(212, 160, 0)");
+
+          await page.click(
+            "#editorUnderlineColorPicker button[title = 'Yellow']"
+          );
+          await page.waitForSelector("#editorUnderlineParamsToolbar.hidden");
+          await page.waitForSelector(".annotationEditorLayer.underlineEditing");
+
+          await highlightSpan(page, 1, "Abstract");
+          await page.waitForSelector(`${getEditorSelector(0)}.underlineEditor`);
+          await page.waitForSelector(
+            `.page[data-page-number = "1"] .canvasWrapper > svg.underline[stroke = "#D4A000"]`
+          );
+
+          // Highlight palette must remain the pale yellow.
+          await switchToHighlight(page);
+          await page.waitForSelector(
+            "#editorHighlightParamsToolbar:not(.hidden)"
+          );
+          const highlightYellow = await page.$eval(
+            "#editorHighlightColorPicker button[title = 'Yellow'] .swatch",
+            el => getComputedStyle(el).backgroundColor
+          );
+          expect(highlightYellow)
+            .withContext(`In ${browserName}`)
+            .toEqual("rgb(255, 255, 152)");
         })
       );
     });

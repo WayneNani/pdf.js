@@ -115,6 +115,9 @@ function isValidAnnotationEditorMode(mode) {
  *   be used. The default value is `AnnotationEditorType.NONE`.
  * @property {string} [annotationEditorHighlightColors] - A comma separated list
  *   of colors to propose to highlight some text in the pdf.
+ * @property {string} [annotationEditorUnderlineColors] - A comma separated list
+ *   of colors to propose for underline annotations (typically more opaque than
+ *   highlight colors).
  * @property {string} [imageResourcesPath] - Path for image resources, mainly
  *   mainly for annotation icons. Include trailing slash.
  * @property {boolean} [enablePrintAutoRotate] - Enables automatic rotation of
@@ -235,6 +238,8 @@ class PDFViewer {
 
   #annotationEditorHighlightColors = null;
 
+  #annotationEditorUnderlineColors = null;
+
   #annotationEditorMode = AnnotationEditorType.NONE;
 
   #annotationEditorUIManager = null;
@@ -350,6 +355,8 @@ class PDFViewer {
       options.annotationEditorMode ?? AnnotationEditorType.NONE;
     this.#annotationEditorHighlightColors =
       options.annotationEditorHighlightColors || null;
+    this.#annotationEditorUnderlineColors =
+      options.annotationEditorUnderlineColors || null;
     this.#enableHighlightFloatingButton =
       options.enableHighlightFloatingButton === true;
     this.#enableUpdatedAddImage = options.enableUpdatedAddImage === true;
@@ -1021,6 +1028,7 @@ class PDFViewer {
               pdfDocument,
               pageColors,
               this.#annotationEditorHighlightColors,
+              this.#annotationEditorUnderlineColors,
               this.#enableHighlightFloatingButton,
               this.#enableUpdatedAddImage,
               this.#enableNewAltTextWhenAddingImage,

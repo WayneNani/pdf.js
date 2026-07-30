@@ -79,15 +79,18 @@ class ColorPicker {
     }
     this.#uiManager = editor?._uiManager || uiManager;
     this.#eventBus = this.#uiManager._eventBus;
-    this.#defaultColor =
-      editor?.color?.toUpperCase() ||
-      this.#uiManager?.highlightColors.values().next().value ||
-      "#FFFF98";
     this.#colorParamType =
       colorParamType ||
       (editor?.mode === AnnotationEditorType.UNDERLINE
         ? AnnotationEditorParamsType.UNDERLINE_COLOR
         : AnnotationEditorParamsType.HIGHLIGHT_COLOR);
+    this.#defaultColor =
+      editor?.color?.toUpperCase() ||
+      (this.#colorParamType === AnnotationEditorParamsType.UNDERLINE_COLOR
+        ? this.#uiManager?.underlineColors?.values().next().value
+        : null) ||
+      this.#uiManager?.highlightColors?.values().next().value ||
+      "#FFFF98";
 
     ColorPicker.#l10nColor ||= Object.freeze({
       blue: "pdfjs-editor-colorpicker-blue",
@@ -101,6 +104,13 @@ class ColorPicker {
       gray: "pdfjs-editor-colorpicker-gray",
       brown: "pdfjs-editor-colorpicker-brown",
     });
+  }
+
+  get #paletteColors() {
+    if (this.#colorParamType === AnnotationEditorParamsType.UNDERLINE_COLOR) {
+      return this.#uiManager.underlineColors || this.#uiManager.highlightColors;
+    }
+    return this.#uiManager.highlightColors;
   }
 
   renderButton() {
@@ -144,7 +154,7 @@ class ColorPicker {
     if (this.#editor) {
       div.id = `${this.#editor.id}_colorpicker_dropdown`;
     }
-    for (const [name, color] of this.#uiManager.highlightColors) {
+    for (const [name, color] of this.#paletteColors) {
       div.append(this.#createColorButton(name, color, signal));
     }
     this.#addCustomColorInput(div, signal);
