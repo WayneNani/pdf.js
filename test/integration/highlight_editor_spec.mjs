@@ -2755,7 +2755,6 @@ describe("Highlight Editor", () => {
 
   describe("Underline style persists for the next mark", () => {
     let pages;
-    const switchToUnderline = switchToEditor.bind(null, "Underline");
 
     beforeEach(async () => {
       pages = await loadAndWait(
@@ -2774,7 +2773,11 @@ describe("Highlight Editor", () => {
     it("must apply top-menu wavy to the selected underline and the next one", async () => {
       await Promise.all(
         pages.map(async ([browserName, page]) => {
-          await switchToUnderline(page);
+          // Activate via keyboard so the params doorhanger stays collapsed
+          // (US1: u → mark → top-menu style). A toolbar click while the
+          // doorhanger is already open would leave underline mode.
+          await page.keyboard.press("u");
+          await page.waitForSelector(".annotationEditorLayer.underlineEditing");
 
           // First mark (default solid).
           await highlightSpan(page, 1, "Abstract");
